@@ -8,12 +8,28 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
+const env_config_1 = require("./config/env.config");
+const prisma_module_1 = require("./prisma/prisma.module");
+const redis_module_1 = require("./redis/redis.module");
+const mail_module_1 = require("./mail/mail.module");
+const auth_module_1 = require("./modules/auth/auth.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [],
+        imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                envFilePath: '.env',
+                load: [env_config_1.envConfig],
+            }),
+            prisma_module_1.PrismaModule,
+            redis_module_1.RedisModule,
+            mail_module_1.MailModule,
+            auth_module_1.AuthModule,
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
