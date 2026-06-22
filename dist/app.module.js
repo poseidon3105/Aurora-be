@@ -14,6 +14,7 @@ const prisma_module_1 = require("./prisma/prisma.module");
 const redis_module_1 = require("./redis/redis.module");
 const mail_module_1 = require("./mail/mail.module");
 const auth_module_1 = require("./modules/auth/auth.module");
+const projects_module_1 = require("./modules/projects/projects.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,6 +30,7 @@ exports.AppModule = AppModule = __decorate([
             redis_module_1.RedisModule,
             mail_module_1.MailModule,
             auth_module_1.AuthModule,
+            projects_module_1.ProjectsModule,
         ],
     })
 ], AppModule);
