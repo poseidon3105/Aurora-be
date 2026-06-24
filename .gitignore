@@ -13,3 +13,4 @@ uploads/*
 Aurora.sql
 knowledge.md
 node_modules/
+prisma/migrations/
