@@ -12,3 +12,4 @@ uploads/*
 .env
 Aurora.sql
 knowledge.md
+node_modules/
