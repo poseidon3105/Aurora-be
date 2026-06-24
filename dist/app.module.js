@@ -15,6 +15,7 @@ const redis_module_1 = require("./redis/redis.module");
 const mail_module_1 = require("./mail/mail.module");
 const auth_module_1 = require("./modules/auth/auth.module");
 const projects_module_1 = require("./modules/projects/projects.module");
+const checklists_module_1 = require("./modules/checklists/checklists.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -31,6 +32,7 @@ exports.AppModule = AppModule = __decorate([
             mail_module_1.MailModule,
             auth_module_1.AuthModule,
             projects_module_1.ProjectsModule,
+            checklists_module_1.ChecklistsModule,
         ],
     })
 ], AppModule);
