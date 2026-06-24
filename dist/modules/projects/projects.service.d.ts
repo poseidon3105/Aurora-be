@@ -1,13 +1,23 @@
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
+import { MailService } from '../../mail/mail.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 export declare class ProjectsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly configService;
+    private readonly redisService;
+    private readonly mailService;
+    constructor(prisma: PrismaService, configService: ConfigService, redisService: RedisService, mailService: MailService);
     private ensureProjectRole;
     private hasElevatedRole;
     private hasProjectRole;
     private findProjectOrThrow;
+    private validateProjectActive;
     create(dto: CreateProjectDto, userId: number): Promise<{
         name: string;
         description: string | null;
@@ -112,5 +122,41 @@ export declare class ProjectsService {
         deletedAt: Date | null;
         id: number;
         ownerId: number;
+    }>;
+    inviteMember(projectId: number, dto: InviteMemberDto, userId: number): Promise<{
+        message: string;
+    }>;
+    acceptInvitation(dto: AcceptInviteDto, authUser: {
+        id: number;
+        email: string;
+    }): Promise<{
+        message: string;
+    }>;
+    getMembers(projectId: number, userId: number): Promise<{
+        id: number;
+        userId: number;
+        fullName: string;
+        email: string;
+        role: string;
+        joinedAt: Date;
+    }[]>;
+    getMemberDetail(projectId: number, memberId: number, userId: number): Promise<{
+        id: number;
+        userId: number;
+        fullName: string;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+        roleId: number;
+        joinedAt: Date;
+    }>;
+    updateMemberRole(projectId: number, memberId: number, dto: UpdateMemberRoleDto, userId: number): Promise<{
+        message: string;
+    }>;
+    removeMember(projectId: number, memberId: number, userId: number): Promise<{
+        message: string;
+    }>;
+    leaveProject(projectId: number, userId: number): Promise<{
+        message: string;
     }>;
 }

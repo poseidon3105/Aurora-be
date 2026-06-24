@@ -30,6 +30,9 @@ const envConfig = () => ({
     refresh: {
         ttl: parseInt(process.env.REFRESH_TTL || '604800', 10),
     },
+    invitation: {
+        ttl: parseInt(process.env.INVITATION_TTL || '604800', 10),
+    },
     port: parseInt(process.env.PORT || '3000', 10),
 });
 exports.envConfig = envConfig;

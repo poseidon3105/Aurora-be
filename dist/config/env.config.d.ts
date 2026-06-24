@@ -27,5 +27,8 @@ export declare const envConfig: () => {
     refresh: {
         ttl: number;
     };
+    invitation: {
+        ttl: number;
+    };
     port: number;
 };

@@ -87,6 +87,28 @@ let MailService = class MailService {
       `,
         });
     }
+    async sendInvitationEmail(email, token) {
+        const invitationUrl = `https://domain.com/invite/${token}`;
+        await this.transporter.sendMail({
+            from: this.configService.get('MAIL_FROM', 'noreply@aurora.com'),
+            to: email,
+            subject: 'You\'ve been invited to join a project - Aurora',
+            html: `
+        <h1>Project Invitation</h1>
+        <p>You have been invited to join a project on Aurora.</p>
+        <p>Click the link below to accept the invitation:</p>
+        <p style="text-align: center;">
+          <a href="${invitationUrl}" style="display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 6px; font-size: 16px;">
+            Accept Invitation
+          </a>
+        </p>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;">${invitationUrl}</p>
+        <p>This invitation expires in 7 days.</p>
+        <p>If you did not expect this invitation, please ignore this email.</p>
+      `,
+        });
+    }
 };
 exports.MailService = MailService;
 exports.MailService = MailService = __decorate([
