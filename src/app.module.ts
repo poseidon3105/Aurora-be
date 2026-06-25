@@ -7,6 +7,7 @@ import { MailModule } from './mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
     AuthModule,
     ProjectsModule,
     ChecklistsModule,
+    TasksModule,
   ],
 })
 export class AppModule {}
