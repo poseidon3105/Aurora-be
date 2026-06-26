@@ -9,16 +9,16 @@ export declare class ProjectsController {
     private readonly projectsService;
     constructor(projectsService: ProjectsService);
     create(dto: CreateProjectDto, user: AuthenticatedUser): Promise<{
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }>;
     findAll(user: AuthenticatedUser): Promise<({
         _count: {
@@ -26,21 +26,21 @@ export declare class ProjectsController {
             checklists: number;
         };
         owner: {
-            email: string;
-            fullName: string;
             id: number;
+            fullName: string;
+            email: string;
         };
     } & {
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     })[]>;
     findOne(projectId: number, user: AuthenticatedUser): Promise<({
         _count: {
@@ -48,70 +48,70 @@ export declare class ProjectsController {
             checklists: number;
         };
         owner: {
-            email: string;
-            fullName: string;
             id: number;
+            fullName: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }) | null>;
     update(projectId: number, dto: UpdateProjectDto, user: AuthenticatedUser): Promise<{
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }>;
     archive(projectId: number, user: AuthenticatedUser): Promise<{
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }>;
     complete(projectId: number, user: AuthenticatedUser): Promise<{
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }>;
     remove(projectId: number, user: AuthenticatedUser): Promise<{
-        name: string;
-        description: string | null;
-        id: number;
-        status: import(".prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
+        id: number;
+        name: string;
+        status: import(".prisma/client").$Enums.ProjectStatus;
+        description: string | null;
+        ownerId: number;
         startDate: Date | null;
         endDate: Date | null;
-        ownerId: number;
     }>;
     inviteMember(projectId: number, dto: InviteMemberDto, user: AuthenticatedUser): Promise<{
         message: string;

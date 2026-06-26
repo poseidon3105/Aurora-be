@@ -5,5 +5,6 @@ export declare class MailService {
     constructor(configService: ConfigService);
     sendVerificationOtp(email: string, otp: string): Promise<void>;
     sendPasswordResetOtp(email: string, otp: string): Promise<void>;
+    sendMentionNotification(email: string, senderName: string, taskId: number): Promise<void>;
     sendInvitationEmail(email: string, token: string): Promise<void>;
 }

@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
     ProjectsModule,
     ChecklistsModule,
     TasksModule,
+    CommentsModule,
   ],
 })
 export class AppModule {}

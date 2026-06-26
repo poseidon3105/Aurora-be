@@ -14,27 +14,31 @@ export declare class TasksController {
         status: string;
     }>;
     findAll(checklistId: number, user: AuthenticatedUser): Promise<{
+        deletedAt: Date | null;
+        id: number;
         description: string | null;
+        checklistId: number;
         title: string;
+        assigneeId: number | null;
+        statusId: number;
         dueDate: Date | null;
         orderIndex: number | null;
         completedAt: Date | null;
-        deletedAt: Date | null;
-        id: number;
-        checklistId: number;
-        assigneeId: number | null;
-        statusId: number;
     }[]>;
     findOne(taskId: number, user: AuthenticatedUser): Promise<{
         tags: {
-            name: string | null;
             id: number;
+            name: string | null;
             color: string | null;
         }[];
         status: {
-            name: string | null;
             id: number;
+            name: string | null;
             color: string | null;
+        };
+        _count: {
+            attachments: number;
+            comments: number;
         };
         checklist: {
             projectId: number;
@@ -45,44 +49,40 @@ export declare class TasksController {
             email: string;
             avatarUrl: string | null;
         } | null;
-        _count: {
-            comments: number;
-            attachments: number;
-        };
+        deletedAt: Date | null;
+        id: number;
         description: string | null;
+        checklistId: number;
         title: string;
+        assigneeId: number | null;
+        statusId: number;
         dueDate: Date | null;
         orderIndex: number | null;
         completedAt: Date | null;
-        deletedAt: Date | null;
-        id: number;
-        checklistId: number;
-        assigneeId: number | null;
-        statusId: number;
     }>;
     update(taskId: number, dto: UpdateTaskDto, user: AuthenticatedUser): Promise<{
+        deletedAt: Date | null;
+        id: number;
         description: string | null;
+        checklistId: number;
         title: string;
+        assigneeId: number | null;
+        statusId: number;
         dueDate: Date | null;
         orderIndex: number | null;
         completedAt: Date | null;
-        deletedAt: Date | null;
-        id: number;
-        checklistId: number;
-        assigneeId: number | null;
-        statusId: number;
     }>;
     assign(taskId: number, dto: AssignTaskDto, user: AuthenticatedUser): Promise<{
+        deletedAt: Date | null;
+        id: number;
         description: string | null;
+        checklistId: number;
         title: string;
+        assigneeId: number | null;
+        statusId: number;
         dueDate: Date | null;
         orderIndex: number | null;
         completedAt: Date | null;
-        deletedAt: Date | null;
-        id: number;
-        checklistId: number;
-        assigneeId: number | null;
-        statusId: number;
     }>;
     changeStatus(taskId: number, dto: ChangeTaskStatusDto, user: AuthenticatedUser): Promise<{
         message: string;

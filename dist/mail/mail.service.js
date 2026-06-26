@@ -61,16 +61,41 @@ let MailService = class MailService {
     }
     async sendVerificationOtp(email, otp) {
         await this.transporter.sendMail({
-            from: this.configService.get('MAIL_FROM', 'noreply@aurora.com'),
+            from: `"Aurora" <${this.configService.get('MAIL_FROM')}>`,
             to: email,
             subject: 'Email Verification - Aurora',
+            text: `Your email verification code is: ${otp}
+
+This code expires in 5 minutes.
+
+If you did not request this verification, you can safely ignore this email.`,
             html: `
-        <h1>Email Verification</h1>
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width:600px; margin:auto;">
+        <h2>Email Verification</h2>
+
         <p>Your verification code is:</p>
-        <h2 style="font-size: 32px; letter-spacing: 6px; text-align: center; background: #f4f4f4; padding: 16px; border-radius: 8px;">${otp}</h2>
-        <p>This code expires in 5 minutes.</p>
-        <p>If you did not request this, please ignore this email.</p>
-      `,
+
+        <div style="
+          font-size:32px;
+          font-weight:bold;
+          text-align:center;
+          background:#f4f4f4;
+          padding:18px;
+          border-radius:8px;
+          letter-spacing:8px;
+          margin:20px 0;">
+          ${otp}
+        </div>
+
+        <p>This code expires in <strong>5 minutes</strong>.</p>
+
+        <hr>
+
+        <p style="font-size:13px;color:#666;">
+          If you did not request this verification, you can safely ignore this email.
+        </p>
+      </div>
+    `,
         });
     }
     async sendPasswordResetOtp(email, otp) {
@@ -87,26 +112,83 @@ let MailService = class MailService {
       `,
         });
     }
-    async sendInvitationEmail(email, token) {
-        const invitationUrl = `https://domain.com/invite/${token}`;
+    async sendMentionNotification(email, senderName, taskId) {
+        const taskUrl = `${this.configService.get('FRONTEND_URL')}/tasks/${taskId}`;
         await this.transporter.sendMail({
-            from: this.configService.get('MAIL_FROM', 'noreply@aurora.com'),
+            from: `"Aurora" <${this.configService.get('MAIL_FROM')}>`,
             to: email,
-            subject: 'You\'ve been invited to join a project - Aurora',
+            subject: 'You were mentioned in a comment - Aurora',
+            text: `${senderName} mentioned you in a comment.
+
+View task:
+${taskUrl}`,
             html: `
-        <h1>Project Invitation</h1>
-        <p>You have been invited to join a project on Aurora.</p>
-        <p>Click the link below to accept the invitation:</p>
-        <p style="text-align: center;">
-          <a href="${invitationUrl}" style="display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 6px; font-size: 16px;">
-            Accept Invitation
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width:600px; margin:auto;">
+        <h2>You were mentioned</h2>
+
+        <p>
+          <strong>${senderName}</strong> mentioned you in a comment on
+          <strong>Task #${taskId}</strong>.
+        </p>
+
+        <p>
+          Open the following link to view the task:
+        </p>
+
+        <p>
+          <a href="${taskUrl}">
+            ${taskUrl}
           </a>
         </p>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #666;">${invitationUrl}</p>
-        <p>This invitation expires in 7 days.</p>
-        <p>If you did not expect this invitation, please ignore this email.</p>
-      `,
+
+        <hr>
+
+        <p style="font-size:13px;color:#666;">
+          This is an automatic notification from Aurora.
+        </p>
+      </div>
+    `,
+        });
+    }
+    async sendInvitationEmail(email, token) {
+        const invitationUrl = `https://your-domain.com/invite/${token}`;
+        await this.transporter.sendMail({
+            from: `"Aurora" <${this.configService.get('MAIL_FROM')}>`,
+            to: email,
+            subject: 'Project Invitation - Aurora',
+            text: `You have been invited to join a project.
+
+Accept invitation:
+${invitationUrl}
+
+This invitation expires in 7 days.`,
+            html: `
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width:600px; margin:auto;">
+        <h2>Project Invitation</h2>
+
+        <p>You have been invited to join a project on <strong>Aurora</strong>.</p>
+
+        <p>
+          Open the following link to accept the invitation:
+        </p>
+
+        <p>
+          <a href="${invitationUrl}">
+            ${invitationUrl}
+          </a>
+        </p>
+
+        <hr>
+
+        <p style="font-size:13px;color:#666;">
+          This invitation expires in 7 days.
+        </p>
+
+        <p style="font-size:13px;color:#666;">
+          If you were not expecting this email, you can safely ignore it.
+        </p>
+      </div>
+    `,
         });
     }
 };

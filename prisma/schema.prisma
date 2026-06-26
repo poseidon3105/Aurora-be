@@ -193,7 +193,9 @@ model TaskComment {
   taskId    Int      @map("task_id")
   userId    Int      @map("user_id")
   content   String   @db.Text
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
   task      ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -205,17 +207,23 @@ model TaskComment {
 }
 
 model TaskAttachment {
-  id         Int     @id @default(autoincrement())
-  taskId     Int     @map("task_id")
-  uploadedById Int   @map("uploaded_by")
-  fileName   String? @map("file_name") @db.VarChar(255)
-  fileUrl    String? @map("file_url") @db.Text
+  id           Int     @id @default(autoincrement())
+  taskId       Int     @map("task_id")
+  uploadedById Int     @map("uploaded_by")
 
-  task       ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  fileName     String? @map("file_name") @db.VarChar(255)
+  fileUrl      String? @map("file_url") @db.Text
+
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  task         ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([taskId])
   @@index([uploadedById])
+
   @@map("task_attachments")
 }
 

@@ -17,6 +17,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const projects_module_1 = require("./modules/projects/projects.module");
 const checklists_module_1 = require("./modules/checklists/checklists.module");
 const tasks_module_1 = require("./modules/tasks/tasks.module");
+const comments_module_1 = require("./modules/comments/comments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -35,6 +36,7 @@ exports.AppModule = AppModule = __decorate([
             projects_module_1.ProjectsModule,
             checklists_module_1.ChecklistsModule,
             tasks_module_1.TasksModule,
+            comments_module_1.CommentsModule,
         ],
     })
 ], AppModule);
