@@ -7,65 +7,65 @@ export declare class ChecklistsController {
     private readonly checklistsService;
     constructor(checklistsService: ChecklistsService);
     create(projectId: number, dto: CreateChecklistDto, user: AuthenticatedUser): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     findAll(projectId: number, user: AuthenticatedUser): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }[]>;
     findOne(checklistId: number, user: AuthenticatedUser): Promise<{
         taskCount: number;
         completedTaskCount: number;
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     update(checklistId: number, dto: UpdateChecklistDto, user: AuthenticatedUser): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     changeStatus(checklistId: number, dto: ChangeChecklistStatusDto, user: AuthenticatedUser): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     remove(checklistId: number, user: AuthenticatedUser): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
 }

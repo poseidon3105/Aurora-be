@@ -30,5 +30,12 @@ export declare const envConfig: () => {
     invitation: {
         ttl: number;
     };
+    azure: {
+        storageConnectionString: string;
+        container: string;
+    };
+    upload: {
+        maxFileSize: number;
+    };
     port: number;
 };

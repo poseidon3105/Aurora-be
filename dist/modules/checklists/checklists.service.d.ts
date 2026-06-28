@@ -9,65 +9,65 @@ export declare class ChecklistsService {
     private isProjectMember;
     private hasProjectRole;
     create(projectId: number, dto: CreateChecklistDto, userId: number): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     findAll(projectId: number, userId: number): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }[]>;
     findOne(checklistId: number, userId: number): Promise<{
         taskCount: number;
         completedTaskCount: number;
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     update(checklistId: number, dto: UpdateChecklistDto, userId: number): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     changeStatus(checklistId: number, dto: ChangeChecklistStatusDto, userId: number): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
     remove(checklistId: number, userId: number): Promise<{
-        deletedAt: Date | null;
+        description: string | null;
+        title: string;
         id: number;
+        deletedAt: Date | null;
         status: import(".prisma/client").$Enums.ChecklistStatus;
         projectId: number;
-        description: string | null;
         createdById: number;
-        title: string;
         dueDate: Date | null;
     }>;
 }

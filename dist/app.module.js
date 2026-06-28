@@ -18,6 +18,8 @@ const projects_module_1 = require("./modules/projects/projects.module");
 const checklists_module_1 = require("./modules/checklists/checklists.module");
 const tasks_module_1 = require("./modules/tasks/tasks.module");
 const comments_module_1 = require("./modules/comments/comments.module");
+const attachments_module_1 = require("./modules/attachments/attachments.module");
+const azure_blob_module_1 = require("./azure-blob/azure-blob.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,11 +34,13 @@ exports.AppModule = AppModule = __decorate([
             prisma_module_1.PrismaModule,
             redis_module_1.RedisModule,
             mail_module_1.MailModule,
+            azure_blob_module_1.AzureBlobModule,
             auth_module_1.AuthModule,
             projects_module_1.ProjectsModule,
             checklists_module_1.ChecklistsModule,
             tasks_module_1.TasksModule,
             comments_module_1.CommentsModule,
+            attachments_module_1.AttachmentsModule,
         ],
     })
 ], AppModule);

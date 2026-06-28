@@ -9,6 +9,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { AzureBlobModule } from './azure-blob/azure-blob.module';
 
 @Module({
   imports: [
@@ -20,11 +22,13 @@ import { CommentsModule } from './modules/comments/comments.module';
     PrismaModule,
     RedisModule,
     MailModule,
+    AzureBlobModule,
     AuthModule,
     ProjectsModule,
     ChecklistsModule,
     TasksModule,
     CommentsModule,
+    AttachmentsModule,
   ],
 })
 export class AppModule {}

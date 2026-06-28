@@ -30,5 +30,12 @@ export const envConfig = () => ({
   invitation: {
     ttl: parseInt(process.env.INVITATION_TTL || '604800', 10),
   },
+  azure: {
+    storageConnectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || '',
+    container: process.env.AZURE_STORAGE_CONTAINER || 'attachments',
+  },
+  upload: {
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '20971520', 10), // 20 MB
+  },
   port: parseInt(process.env.PORT || '3000', 10),
 });
