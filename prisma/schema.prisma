@@ -31,37 +31,39 @@ enum ChecklistStatus {
 }
 
 model User {
-  id            Int               @id @default(autoincrement())
-  fullName      String            @map("full_name") @db.VarChar(150)
-  email         String            @unique @db.VarChar(255)
-  passwordHash  String            @map("password_hash") @db.VarChar(255)
-  avatarUrl     String?           @map("avatar_url") @db.Text
-  status        UserStatus        @default(ACTIVE)
-  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt     DateTime?         @map("deleted_at") @db.Timestamp(0)
+  id           Int        @id @default(autoincrement())
+  fullName     String     @map("full_name") @db.VarChar(150)
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  avatarUrl    String?    @map("avatar_url") @db.Text
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamp(0)
 
-  systemRoles   UserSystemRole[]
-  createdProjectRoles ProjectRole[] @relation("ProjectRoleCreatedBy")
-  ownedProjects Project[]         @relation("ProjectOwner")
-  projectMemberships ProjectMember[]
-  createdChecklists Checklist[]    @relation("ChecklistCreator")
-  assignedItems  ChecklistItem[]   @relation("TaskAssignee")
-  taskComments   TaskComment[]
-  taskAttachments TaskAttachment[]
-  notifications  Notification[]
-  activityLogs   ActivityLog[]
+  systemRoles         UserSystemRole[]
+  createdProjectRoles ProjectRole[]    @relation("ProjectRoleCreatedBy")
+  ownedProjects       Project[]        @relation("ProjectOwner")
+  projectMemberships  ProjectMember[]
+  createdChecklists   Checklist[]      @relation("ChecklistCreator")
+  assignedItems       ChecklistItem[]  @relation("TaskAssignee")
+  taskComments        TaskComment[]
+  taskAttachments     TaskAttachment[]
+  notifications       Notification[]
+  activityLogs        ActivityLog[]
+
+  createdTags Tag[] @relation("TagCreatedBy")
 
   @@map("users")
 }
 
 model SystemRole {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique @db.VarChar(100)
-  description String?          @db.Text
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  users       UserSystemRole[]
+  users UserSystemRole[]
 
   @@map("system_roles")
 }
@@ -70,7 +72,7 @@ model UserSystemRole {
   userId Int @map("user_id")
   roleId Int @map("role_id")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   role SystemRole @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([userId, roleId])
@@ -78,58 +80,57 @@ model UserSystemRole {
 }
 
 model ProjectRole {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique @db.VarChar(100)
-  description String? @db.Text
-  createdById Int?    @map("created_by")
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdById Int?     @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  createdBy   User?           @relation("ProjectRoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  members     ProjectMember[]
+  createdBy User?           @relation("ProjectRoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  members   ProjectMember[]
 
   @@map("project_roles")
 }
 
 model Project {
-  id          Int            @id @default(autoincrement())
-  name        String         @db.VarChar(255)
-  description String?        @db.Text
-  ownerId     Int            @map("owner_id")
-  status      ProjectStatus  @default(ACTIVE)
-  startDate   DateTime?      @map("start_date") @db.Date
-  endDate     DateTime?      @map("end_date") @db.Date
-  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime?      @map("deleted_at") @db.Timestamp(0)
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(255)
+  description String?       @db.Text
+  ownerId     Int           @map("owner_id")
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?     @map("start_date") @db.Date
+  endDate     DateTime?     @map("end_date") @db.Date
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime?     @map("deleted_at") @db.Timestamp(0)
 
-  owner       User           @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  members     ProjectMember[]
-  checklists  Checklist[]
+  owner      User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  members    ProjectMember[]
+  checklists Checklist[]
+  tags       Tag[]
 
   @@map("projects")
 }
 
 model ProjectMember {
-  id         Int                 @id @default(autoincrement())
-  projectId  Int                 @map("project_id")
-  userId     Int                 @map("user_id")
-  roleId     Int                 @map("role_id")
+  id        Int @id @default(autoincrement())
+  projectId Int @map("project_id")
+  userId    Int @map("user_id")
+  roleId    Int @map("role_id")
 
-  status     ProjectMemberStatus @default(ACTIVE)
+  status ProjectMemberStatus @default(ACTIVE)
 
-  joinedAt   DateTime            @default(now()) @map("joined_at") @db.Timestamp(0)
-  deletedAt  DateTime?           @map("deleted_at") @db.Timestamp(0)
+  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
-  project    Project     @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  role       ProjectRole @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  role    ProjectRole @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([projectId, userId])
-
   @@index([projectId])
   @@index([userId])
   @@index([roleId])
-
   @@map("project_members")
 }
 
@@ -143,9 +144,9 @@ model Checklist {
   status      ChecklistStatus @default(OPEN)
   deletedAt   DateTime?       @map("deleted_at") @db.Timestamp(0)
 
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdBy   User            @relation("ChecklistCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  items       ChecklistItem[]
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy User            @relation("ChecklistCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items     ChecklistItem[]
 
   @@index([projectId])
   @@index([createdById])
@@ -153,34 +154,34 @@ model Checklist {
 }
 
 model TaskStatus {
-  id         Int              @id @default(autoincrement())
-  name       String?          @unique @db.VarChar(100)
-  color      String?          @db.VarChar(20)
-  orderIndex Int?             @map("order_index")
+  id         Int     @id @default(autoincrement())
+  name       String? @unique @db.VarChar(100)
+  color      String? @db.VarChar(20)
+  orderIndex Int?    @map("order_index")
 
-  items      ChecklistItem[]
+  items ChecklistItem[]
 
   @@map("task_statuses")
 }
 
 model ChecklistItem {
-  id            Int           @id @default(autoincrement())
-  checklistId   Int           @map("checklist_id")
-  title         String        @db.VarChar(255)
-  description   String?       @db.Text
-  assigneeId    Int?          @map("assignee_id")
-  statusId      Int           @map("status_id")
-  dueDate       DateTime?     @map("due_date")
-  orderIndex    Int?          @map("order_index")
-  completedAt   DateTime?     @map("completed_at")
-  deletedAt    DateTime?     @map("deleted_at") @db.Timestamp(0)
+  id          Int       @id @default(autoincrement())
+  checklistId Int       @map("checklist_id")
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  assigneeId  Int?      @map("assignee_id")
+  statusId    Int       @map("status_id")
+  dueDate     DateTime? @map("due_date")
+  orderIndex  Int?      @map("order_index")
+  completedAt DateTime? @map("completed_at")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
 
-  checklist     Checklist     @relation(fields: [checklistId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  assignee      User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  status        TaskStatus    @relation(fields: [statusId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  comments      TaskComment[]
-  attachments   TaskAttachment[]
-  tags          TaskTag[]
+  checklist   Checklist        @relation(fields: [checklistId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  status      TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+  tags        TaskTag[]
 
   @@index([checklistId])
   @@index([assigneeId])
@@ -189,17 +190,17 @@ model ChecklistItem {
 }
 
 model TaskComment {
-  id        Int      @id @default(autoincrement())
-  taskId    Int      @map("task_id")
-  userId    Int      @map("user_id")
-  content   String   @db.Text
+  id      Int    @id @default(autoincrement())
+  taskId  Int    @map("task_id")
+  userId  Int    @map("user_id")
+  content String @db.Text
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
-  task      ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  task ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([taskId])
   @@index([userId])
@@ -207,33 +208,41 @@ model TaskComment {
 }
 
 model TaskAttachment {
-  id           Int     @id @default(autoincrement())
-  taskId       Int     @map("task_id")
-  uploadedById Int     @map("uploaded_by")
+  id           Int @id @default(autoincrement())
+  taskId       Int @map("task_id")
+  uploadedById Int @map("uploaded_by")
 
-  fileName     String? @map("file_name") @db.VarChar(255)
-  fileUrl      String? @map("file_url") @db.Text
+  fileName String? @map("file_name") @db.VarChar(255)
+  fileUrl  String? @map("file_url") @db.Text
 
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
-  deletedAt    DateTime? @map("deleted_at") @db.Timestamp(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
-  task         ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  task       ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([taskId])
   @@index([uploadedById])
-
   @@map("task_attachments")
 }
 
 model Tag {
-  id       Int         @id @default(autoincrement())
-  name     String?     @unique @db.VarChar(100)
-  color    String?     @db.VarChar(20)
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  name        String   @db.VarChar(100)
+  color       String?  @db.VarChar(20)
+  createdById Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  tasks    TaskTag[]
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy User    @relation("TagCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
+  tasks TaskTag[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([createdById])
   @@map("tags")
 }
 
@@ -241,8 +250,8 @@ model TaskTag {
   taskId Int @map("task_id")
   tagId  Int @map("tag_id")
 
-  task   ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  tag    Tag           @relation(fields: [tagId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  task ChecklistItem @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tag  Tag           @relation(fields: [tagId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([taskId, tagId])
   @@index([tagId])
@@ -257,7 +266,7 @@ model Notification {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([userId])
   @@map("notifications")
@@ -273,7 +282,7 @@ model ActivityLog {
   newValue   String?  @map("new_value") @db.Text
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([userId])
   @@map("activity_logs")

@@ -19,6 +19,7 @@ const checklists_module_1 = require("./modules/checklists/checklists.module");
 const tasks_module_1 = require("./modules/tasks/tasks.module");
 const comments_module_1 = require("./modules/comments/comments.module");
 const attachments_module_1 = require("./modules/attachments/attachments.module");
+const tags_module_1 = require("./modules/tags/tags.module");
 const azure_blob_module_1 = require("./azure-blob/azure-blob.module");
 let AppModule = class AppModule {
 };
@@ -41,6 +42,7 @@ exports.AppModule = AppModule = __decorate([
             tasks_module_1.TasksModule,
             comments_module_1.CommentsModule,
             attachments_module_1.AttachmentsModule,
+            tags_module_1.TagsModule,
         ],
     })
 ], AppModule);

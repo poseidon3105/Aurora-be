@@ -10,6 +10,7 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { AzureBlobModule } from './azure-blob/azure-blob.module';
 
 @Module({
@@ -29,6 +30,7 @@ import { AzureBlobModule } from './azure-blob/azure-blob.module';
     TasksModule,
     CommentsModule,
     AttachmentsModule,
+    TagsModule,
   ],
 })
 export class AppModule {}
