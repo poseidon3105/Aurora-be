@@ -11,6 +11,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AzureBlobModule } from './azure-blob/azure-blob.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { AzureBlobModule } from './azure-blob/azure-blob.module';
     CommentsModule,
     AttachmentsModule,
     TagsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -25,6 +26,7 @@ export class ProjectsService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ───────────────────────────
@@ -412,7 +414,7 @@ export class ProjectsService {
     }
 
     // Validate project exists and is active
-    await this.validateProjectActive(projectId);
+    const project = await this.validateProjectActive(projectId);
 
     // Check existing membership — reactivate if INACTIVE
     const existingMember = await this.prisma.projectMember.findUnique({
@@ -447,6 +449,15 @@ export class ProjectsService {
 
     // Delete invitation from Redis
     await this.redisService.del(`${PROJECT_REDIS_KEYS.INVITE}${token}`);
+
+    // Notification: User added to project
+    await this.notificationsService.create(
+      authUser.id,
+      'Added to Project',
+      `You have been added to project "${project.name}".`,
+    ).catch(() => {
+      // Silently fail — notification should not block acceptance
+    });
 
     return { message: 'Joined project successfully' };
   }
@@ -575,6 +586,21 @@ export class ProjectsService {
     await this.prisma.projectMember.update({
       where: { id: memberId },
       data: { roleId: dto.roleId },
+    });
+
+    // Fetch project name for notification
+    const roleChangeProject = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    });
+
+    // Notification: User's role has changed
+    await this.notificationsService.create(
+      member.userId,
+      'Role Changed',
+      `Your role has been changed to ${newRole.name} in project "${roleChangeProject?.name || 'Unknown'}".`,
+    ).catch(() => {
+      // Silently fail
     });
 
     return { message: 'Role updated successfully' };

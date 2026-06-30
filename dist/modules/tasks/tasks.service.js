@@ -12,10 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TasksService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 const client_1 = require("@prisma/client");
 let TasksService = class TasksService {
-    constructor(prisma) {
+    constructor(prisma, notificationsService) {
         this.prisma = prisma;
+        this.notificationsService = notificationsService;
     }
     async findTaskOrThrow(taskId) {
         const task = await this.prisma.checklistItem.findUnique({
@@ -247,7 +249,7 @@ let TasksService = class TasksService {
                 throw new common_1.BadRequestException('Task due date must be on or before the checklist due date');
             }
         }
-        return this.prisma.checklistItem.update({
+        await this.prisma.checklistItem.update({
             where: { id: taskId },
             data: {
                 ...(dto.title !== undefined && { title: dto.title }),
@@ -259,6 +261,20 @@ let TasksService = class TasksService {
                     dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
                 }),
             },
+        });
+        if (dto.assigneeId !== undefined && !dto.assigneeId && task.assigneeId) {
+            await this.notificationsService.create(task.assigneeId, 'Task Unassigned', `You have been removed from task "${task.title}".`).catch(() => { });
+        }
+        if (dto.assigneeId !== undefined && dto.assigneeId && dto.assigneeId !== task.assigneeId) {
+            const assigner = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { fullName: true },
+            });
+            const assignerName = assigner?.fullName || 'A user';
+            await this.notificationsService.create(dto.assigneeId, 'Task Assigned', `${assignerName} assigned you to task "${task.title}".`).catch(() => { });
+        }
+        return this.prisma.checklistItem.findUnique({
+            where: { id: taskId },
         });
     }
     async assign(taskId, dto, userId) {
@@ -276,9 +292,18 @@ let TasksService = class TasksService {
             throw new common_1.ForbiddenException('Only a project manager or the current assignee can assign tasks');
         }
         await this.validateAssignee(dto.assigneeId, checklist.project.id);
-        return this.prisma.checklistItem.update({
+        await this.prisma.checklistItem.update({
             where: { id: taskId },
             data: { assigneeId: dto.assigneeId },
+        });
+        const assigner = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { fullName: true },
+        });
+        const assignerName = assigner?.fullName || 'A user';
+        await this.notificationsService.create(dto.assigneeId, 'Task Assigned', `${assignerName} assigned you to task "${task.title}".`).catch(() => { });
+        return this.prisma.checklistItem.findUnique({
+            where: { id: taskId },
         });
     }
     async changeStatus(taskId, dto, userId) {
@@ -315,6 +340,9 @@ let TasksService = class TasksService {
             },
         });
         await this.autoUpdateChecklistStatus(task.checklistId);
+        if (doneStatus && dto.statusId === doneStatus.id && task.assigneeId && task.assigneeId !== userId) {
+            await this.notificationsService.create(task.assigneeId, 'Task Completed', `Task "${task.title}" has been completed.`).catch(() => { });
+        }
         return {
             message: 'Status updated successfully',
             status: newStatus.name,
@@ -417,6 +445,7 @@ let TasksService = class TasksService {
 exports.TasksService = TasksService;
 exports.TasksService = TasksService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notifications_service_1.NotificationsService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

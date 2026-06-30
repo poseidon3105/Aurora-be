@@ -1,4 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -6,7 +7,8 @@ import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
 import { ReorderTaskDto } from './dto/reorder-task.dto';
 export declare class TasksService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly notificationsService;
+    constructor(prisma: PrismaService, notificationsService: NotificationsService);
     private findTaskOrThrow;
     private isProjectMember;
     private hasProjectRole;
@@ -18,16 +20,16 @@ export declare class TasksService {
         status: string;
     }>;
     findAll(checklistId: number, userId: number): Promise<{
-        deletedAt: Date | null;
-        id: number;
         title: string;
+        id: number;
+        deletedAt: Date | null;
         description: string | null;
         dueDate: Date | null;
+        orderIndex: number | null;
+        completedAt: Date | null;
         checklistId: number;
         assigneeId: number | null;
         statusId: number;
-        orderIndex: number | null;
-        completedAt: Date | null;
     }[]>;
     findOne(taskId: number, userId: number): Promise<{
         tags: {
@@ -41,8 +43,8 @@ export declare class TasksService {
             color: string | null;
         };
         _count: {
-            attachments: number;
             comments: number;
+            attachments: number;
         };
         checklist: {
             projectId: number;
@@ -53,41 +55,41 @@ export declare class TasksService {
             email: string;
             avatarUrl: string | null;
         } | null;
-        deletedAt: Date | null;
-        id: number;
         title: string;
+        id: number;
+        deletedAt: Date | null;
         description: string | null;
         dueDate: Date | null;
+        orderIndex: number | null;
+        completedAt: Date | null;
         checklistId: number;
         assigneeId: number | null;
         statusId: number;
-        orderIndex: number | null;
-        completedAt: Date | null;
     }>;
     update(taskId: number, dto: UpdateTaskDto, userId: number): Promise<{
-        deletedAt: Date | null;
-        id: number;
         title: string;
+        id: number;
+        deletedAt: Date | null;
         description: string | null;
         dueDate: Date | null;
+        orderIndex: number | null;
+        completedAt: Date | null;
         checklistId: number;
         assigneeId: number | null;
         statusId: number;
-        orderIndex: number | null;
-        completedAt: Date | null;
-    }>;
+    } | null>;
     assign(taskId: number, dto: AssignTaskDto, userId: number): Promise<{
-        deletedAt: Date | null;
-        id: number;
         title: string;
+        id: number;
+        deletedAt: Date | null;
         description: string | null;
         dueDate: Date | null;
+        orderIndex: number | null;
+        completedAt: Date | null;
         checklistId: number;
         assigneeId: number | null;
         statusId: number;
-        orderIndex: number | null;
-        completedAt: Date | null;
-    }>;
+    } | null>;
     changeStatus(taskId: number, dto: ChangeTaskStatusDto, userId: number): Promise<{
         message: string;
         status: string | null;

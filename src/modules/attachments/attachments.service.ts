@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AzureBlobService } from '../../azure-blob/azure-blob.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { validateFile, normalizeFileName } from './file-validation.util';
 import * as crypto from 'crypto';
 
@@ -18,6 +19,7 @@ export class AttachmentsService {
     private readonly prisma: PrismaService,
     private readonly azureBlobService: AzureBlobService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.maxFileSize = this.configService.get<number>('upload.maxFileSize', 20971520);
   }
@@ -89,6 +91,53 @@ export class AttachmentsService {
     return attachment;
   }
 
+  // ───────────────────────────
+  //  Notify task participants about a new attachment
+  // ───────────────────────────
+
+  private async notifyTaskParticipants(
+    taskId: number,
+    uploaderId: number,
+    taskTitle: string,
+  ) {
+    // Get the task to find the assignee
+    const task = await this.prisma.checklistItem.findUnique({
+      where: { id: taskId },
+      select: { assigneeId: true },
+    });
+    if (!task) return;
+
+    // Collect unique participant IDs (assignee + other commenters)
+    const participantIds = new Set<number>();
+
+    if (task.assigneeId && task.assigneeId !== uploaderId) {
+      participantIds.add(task.assigneeId);
+    }
+
+    // Find other commenters on this task
+    const commenters = await this.prisma.taskComment.findMany({
+      where: {
+        taskId,
+        deletedAt: null,
+        userId: { not: uploaderId },
+      },
+      select: { userId: true },
+    });
+    commenters.forEach((c) => participantIds.add(c.userId));
+
+    if (participantIds.size === 0) return;
+
+    const content = `A new file has been uploaded to task "${taskTitle}".`;
+
+    for (const participantId of participantIds) {
+      await this.notificationsService.create(
+        participantId,
+        'New Attachment',
+        content,
+      ).catch(() => {});
+    }
+  }
+
   // ═══════════════════════════════════════════════
   //  3. Upload Attachment
   // ═══════════════════════════════════════════════
@@ -142,6 +191,13 @@ export class AttachmentsService {
         fileUrl,
       },
     });
+
+    // Notification: Notify task participants about the new attachment
+    await this.notifyTaskParticipants(
+      taskId,
+      userId,
+      task.title,
+    );
 
     return {
       id: attachment.id,

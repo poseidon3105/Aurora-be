@@ -48,15 +48,17 @@ const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const redis_service_1 = require("../../redis/redis.service");
 const mail_service_1 = require("../../mail/mail.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 const client_1 = require("@prisma/client");
 const crypto = __importStar(require("crypto"));
 const projects_constants_1 = require("./projects.constants");
 let ProjectsService = class ProjectsService {
-    constructor(prisma, configService, redisService, mailService) {
+    constructor(prisma, configService, redisService, mailService, notificationsService) {
         this.prisma = prisma;
         this.configService = configService;
         this.redisService = redisService;
         this.mailService = mailService;
+        this.notificationsService = notificationsService;
     }
     async ensureProjectRole(name) {
         let role = await this.prisma.projectRole.findUnique({ where: { name } });
@@ -293,7 +295,7 @@ let ProjectsService = class ProjectsService {
         if (!role) {
             throw new common_1.BadRequestException('The assigned role no longer exists');
         }
-        await this.validateProjectActive(projectId);
+        const project = await this.validateProjectActive(projectId);
         const existingMember = await this.prisma.projectMember.findUnique({
             where: { projectId_userId: { projectId, userId: authUser.id } },
         });
@@ -322,6 +324,8 @@ let ProjectsService = class ProjectsService {
             });
         }
         await this.redisService.del(`${projects_constants_1.PROJECT_REDIS_KEYS.INVITE}${token}`);
+        await this.notificationsService.create(authUser.id, 'Added to Project', `You have been added to project "${project.name}".`).catch(() => {
+        });
         return { message: 'Joined project successfully' };
     }
     async getMembers(projectId, userId) {
@@ -412,6 +416,12 @@ let ProjectsService = class ProjectsService {
             where: { id: memberId },
             data: { roleId: dto.roleId },
         });
+        const roleChangeProject = await this.prisma.project.findUnique({
+            where: { id: projectId },
+            select: { name: true },
+        });
+        await this.notificationsService.create(member.userId, 'Role Changed', `Your role has been changed to ${newRole.name} in project "${roleChangeProject?.name || 'Unknown'}".`).catch(() => {
+        });
         return { message: 'Role updated successfully' };
     }
     async removeMember(projectId, memberId, userId) {
@@ -490,6 +500,7 @@ exports.ProjectsService = ProjectsService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService,
         redis_service_1.RedisService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        notifications_service_1.NotificationsService])
 ], ProjectsService);
 //# sourceMappingURL=projects.service.js.map

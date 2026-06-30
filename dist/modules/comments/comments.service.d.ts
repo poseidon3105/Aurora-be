@@ -1,16 +1,19 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 export declare class CommentsService {
     private readonly prisma;
     private readonly mailService;
-    constructor(prisma: PrismaService, mailService: MailService);
+    private readonly notificationsService;
+    constructor(prisma: PrismaService, mailService: MailService, notificationsService: NotificationsService);
     private isProjectMember;
     private hasProjectRole;
     private findTaskWithProjectOrThrow;
     private findCommentOrThrow;
     private findCommentWithProject;
+    private notifyTaskParticipants;
     private processMentions;
     create(taskId: number, dto: CreateCommentDto, userId: number): Promise<{
         id: number;

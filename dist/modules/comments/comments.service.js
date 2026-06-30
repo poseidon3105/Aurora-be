@@ -13,10 +13,12 @@ exports.CommentsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const mail_service_1 = require("../../mail/mail.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 let CommentsService = class CommentsService {
-    constructor(prisma, mailService) {
+    constructor(prisma, mailService, notificationsService) {
         this.prisma = prisma;
         this.mailService = mailService;
+        this.notificationsService = notificationsService;
     }
     async isProjectMember(projectId, userId) {
         const member = await this.prisma.projectMember.findFirst({
@@ -67,6 +69,33 @@ let CommentsService = class CommentsService {
             throw new common_1.NotFoundException('Comment not found');
         }
         return comment;
+    }
+    async notifyTaskParticipants(taskId, projectId, commenterId, commenterName, taskTitle) {
+        const task = await this.prisma.checklistItem.findUnique({
+            where: { id: taskId },
+            select: { assigneeId: true },
+        });
+        if (!task)
+            return;
+        const participantIds = new Set();
+        if (task.assigneeId && task.assigneeId !== commenterId) {
+            participantIds.add(task.assigneeId);
+        }
+        const otherCommenters = await this.prisma.taskComment.findMany({
+            where: {
+                taskId,
+                deletedAt: null,
+                userId: { not: commenterId },
+            },
+            select: { userId: true },
+        });
+        otherCommenters.forEach((c) => participantIds.add(c.userId));
+        if (participantIds.size === 0)
+            return;
+        const content = `${commenterName} commented on task "${taskTitle}".`;
+        for (const participantId of participantIds) {
+            await this.notificationsService.create(participantId, 'New Comment', content).catch(() => { });
+        }
     }
     async processMentions(content, projectId, taskId, senderId, senderName) {
         const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
@@ -134,6 +163,9 @@ let CommentsService = class CommentsService {
         });
         if (sender) {
             await this.processMentions(dto.content, projectId, taskId, sender.id, sender.fullName);
+        }
+        if (sender) {
+            await this.notifyTaskParticipants(taskId, task.checklist.projectId, sender.id, sender.fullName, task.title);
         }
         return {
             id: comment.id,
@@ -208,6 +240,7 @@ exports.CommentsService = CommentsService;
 exports.CommentsService = CommentsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        notifications_service_1.NotificationsService])
 ], CommentsService);
 //# sourceMappingURL=comments.service.js.map

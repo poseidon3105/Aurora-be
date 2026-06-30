@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -15,7 +16,10 @@ import { ChecklistStatus, ProjectStatus, ProjectMemberStatus, UserStatus } from 
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ───────────────────────────
   //  Helper: Find task or throw 404
@@ -340,7 +344,7 @@ export class TasksService {
       }
     }
 
-    return this.prisma.checklistItem.update({
+    await this.prisma.checklistItem.update({
       where: { id: taskId },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
@@ -352,6 +356,33 @@ export class TasksService {
           dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
         }),
       },
+    });
+
+    // Notification: Task unassigned
+    if (dto.assigneeId !== undefined && !dto.assigneeId && task.assigneeId) {
+      await this.notificationsService.create(
+        task.assigneeId,
+        'Task Unassigned',
+        `You have been removed from task "${task.title}".`,
+      ).catch(() => {});
+    }
+
+    // Notification: Task assigned to someone new via update
+    if (dto.assigneeId !== undefined && dto.assigneeId && dto.assigneeId !== task.assigneeId) {
+      const assigner = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true },
+      });
+      const assignerName = assigner?.fullName || 'A user';
+      await this.notificationsService.create(
+        dto.assigneeId,
+        'Task Assigned',
+        `${assignerName} assigned you to task "${task.title}".`,
+      ).catch(() => {});
+    }
+
+    return this.prisma.checklistItem.findUnique({
+      where: { id: taskId },
     });
   }
 
@@ -381,9 +412,25 @@ export class TasksService {
     // Validate the new assignee
     await this.validateAssignee(dto.assigneeId, checklist.project.id);
 
-    return this.prisma.checklistItem.update({
+    await this.prisma.checklistItem.update({
       where: { id: taskId },
       data: { assigneeId: dto.assigneeId },
+    });
+
+    // Notification: Task assigned (notify the new assignee)
+    const assigner = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true },
+    });
+    const assignerName = assigner?.fullName || 'A user';
+    await this.notificationsService.create(
+      dto.assigneeId!,
+      'Task Assigned',
+      `${assignerName} assigned you to task "${task.title}".`,
+    ).catch(() => {});
+
+    return this.prisma.checklistItem.findUnique({
+      where: { id: taskId },
     });
   }
 
@@ -440,6 +487,15 @@ export class TasksService {
 
     // Auto-update checklist status
     await this.autoUpdateChecklistStatus(task.checklistId);
+
+    // Notification: Task completed by someone else
+    if (doneStatus && dto.statusId === doneStatus.id && task.assigneeId && task.assigneeId !== userId) {
+      await this.notificationsService.create(
+        task.assigneeId,
+        'Task Completed',
+        `Task "${task.title}" has been completed.`,
+      ).catch(() => {});
+    }
 
     return {
       message: 'Status updated successfully',

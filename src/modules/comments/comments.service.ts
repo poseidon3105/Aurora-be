@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -14,6 +15,7 @@ export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ───────────────────────────
@@ -92,6 +94,59 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
     return comment;
+  }
+
+  // ───────────────────────────
+  //  Notify task participants about a new comment
+  // ───────────────────────────
+
+  /**
+   * Find all users involved with this task (assignee + previous commenters)
+   * and notify them about the new comment, excluding the comment author.
+   */
+  private async notifyTaskParticipants(
+    taskId: number,
+    projectId: number,
+    commenterId: number,
+    commenterName: string,
+    taskTitle: string,
+  ) {
+    // Get the task to find the assignee
+    const task = await this.prisma.checklistItem.findUnique({
+      where: { id: taskId },
+      select: { assigneeId: true },
+    });
+    if (!task) return;
+
+    // Collect unique participant IDs (assignee + other commenters)
+    const participantIds = new Set<number>();
+
+    if (task.assigneeId && task.assigneeId !== commenterId) {
+      participantIds.add(task.assigneeId);
+    }
+
+    // Find other commenters on this task
+    const otherCommenters = await this.prisma.taskComment.findMany({
+      where: {
+        taskId,
+        deletedAt: null,
+        userId: { not: commenterId },
+      },
+      select: { userId: true },
+    });
+    otherCommenters.forEach((c) => participantIds.add(c.userId));
+
+    if (participantIds.size === 0) return;
+
+    const content = `${commenterName} commented on task "${taskTitle}".`;
+
+    for (const participantId of participantIds) {
+      await this.notificationsService.create(
+        participantId,
+        'New Comment',
+        content,
+      ).catch(() => {});
+    }
   }
 
   // ═══════════════════════════════════════════════
@@ -204,6 +259,17 @@ export class CommentsService {
     // Process @mentions (non-blocking — failures don't affect comment creation)
     if (sender) {
       await this.processMentions(dto.content, projectId, taskId, sender.id, sender.fullName);
+    }
+
+    // Notification: Notify task participants about the new comment
+    if (sender) {
+      await this.notifyTaskParticipants(
+        taskId,
+        task.checklist.projectId,
+        sender.id,
+        sender.fullName,
+        task.title,
+      );
     }
 
     return {
