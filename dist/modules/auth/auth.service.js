@@ -50,15 +50,17 @@ const bcrypt = __importStar(require("bcrypt"));
 const prisma_service_1 = require("../../prisma/prisma.service");
 const redis_service_1 = require("../../redis/redis.service");
 const mail_service_1 = require("../../mail/mail.service");
+const activity_log_service_1 = require("../activity-log/activity-log.service");
 const client_1 = require("@prisma/client");
 const auth_constants_1 = require("./auth.constants");
 let AuthService = class AuthService {
-    constructor(prisma, jwtService, configService, redisService, mailService) {
+    constructor(prisma, jwtService, configService, redisService, mailService, activityLogService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.configService = configService;
         this.redisService = redisService;
         this.mailService = mailService;
+        this.activityLogService = activityLogService;
     }
     generateOtp() {
         return Math.floor(100000 + Math.random() * 900000).toString();
@@ -116,6 +118,7 @@ let AuthService = class AuthService {
         const otpTtl = Number(this.configService.get('OTP_TTL', 300));
         await this.redisService.set(`${auth_constants_1.REDIS_KEYS.OTP_VERIFY}${email}`, otp, otpTtl);
         await this.mailService.sendVerificationOtp(email, otp);
+        await this.activityLogService.create(user.id, 'REGISTER', 'USER', user.id).catch(() => { });
         return { message: 'Registration successful. Please verify your email.' };
     }
     async verifyEmail(dto) {
@@ -127,7 +130,7 @@ let AuthService = class AuthService {
         if (storedOtp !== otp) {
             throw new common_1.BadRequestException('Invalid OTP');
         }
-        await this.prisma.user.update({
+        const user = await this.prisma.user.update({
             where: { email },
             data: {
                 status: client_1.UserStatus.ACTIVE,
@@ -246,7 +249,8 @@ let AuthService = class AuthService {
         if (!user) {
             return { message: 'If the email exists, a password reset OTP has been sent' };
         }
-        return this.handleOtpResend(email, 'reset');
+        const result = await this.handleOtpResend(email, 'reset');
+        return result;
     }
     async verifyResetOtp(dto) {
         const { email, otp } = dto;
@@ -285,6 +289,7 @@ exports.AuthService = AuthService = __decorate([
         jwt_1.JwtService,
         config_1.ConfigService,
         redis_service_1.RedisService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        activity_log_service_1.ActivityLogService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

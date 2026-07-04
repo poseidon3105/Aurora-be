@@ -1,5 +1,6 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -8,7 +9,8 @@ import { ReorderTaskDto } from './dto/reorder-task.dto';
 export declare class TasksService {
     private readonly prisma;
     private readonly notificationsService;
-    constructor(prisma: PrismaService, notificationsService: NotificationsService);
+    private readonly activityLogService;
+    constructor(prisma: PrismaService, notificationsService: NotificationsService, activityLogService: ActivityLogService);
     private findTaskOrThrow;
     private isProjectMember;
     private hasProjectRole;
@@ -20,9 +22,9 @@ export declare class TasksService {
         status: string;
     }>;
     findAll(checklistId: number, userId: number): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -37,14 +39,14 @@ export declare class TasksService {
             name: string;
             color: string | null;
         }[];
+        _count: {
+            comments: number;
+            attachments: number;
+        };
         status: {
             id: number;
             name: string | null;
             color: string | null;
-        };
-        _count: {
-            comments: number;
-            attachments: number;
         };
         checklist: {
             projectId: number;
@@ -55,9 +57,9 @@ export declare class TasksService {
             email: string;
             avatarUrl: string | null;
         } | null;
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -67,9 +69,9 @@ export declare class TasksService {
         statusId: number;
     }>;
     update(taskId: number, dto: UpdateTaskDto, userId: number): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -79,9 +81,9 @@ export declare class TasksService {
         statusId: number;
     } | null>;
     assign(taskId: number, dto: AssignTaskDto, userId: number): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;

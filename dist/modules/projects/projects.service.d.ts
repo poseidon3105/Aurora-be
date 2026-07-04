@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -14,7 +15,8 @@ export declare class ProjectsService {
     private readonly redisService;
     private readonly mailService;
     private readonly notificationsService;
-    constructor(prisma: PrismaService, configService: ConfigService, redisService: RedisService, mailService: MailService, notificationsService: NotificationsService);
+    private readonly activityLogService;
+    constructor(prisma: PrismaService, configService: ConfigService, redisService: RedisService, mailService: MailService, notificationsService: NotificationsService, activityLogService: ActivityLogService);
     private ensureProjectRole;
     private hasElevatedRole;
     private hasProjectRole;

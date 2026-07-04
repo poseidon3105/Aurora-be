@@ -14,9 +14,9 @@ export declare class TasksController {
         status: string;
     }>;
     findAll(checklistId: number, user: AuthenticatedUser): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -31,14 +31,14 @@ export declare class TasksController {
             name: string;
             color: string | null;
         }[];
+        _count: {
+            comments: number;
+            attachments: number;
+        };
         status: {
             id: number;
             name: string | null;
             color: string | null;
-        };
-        _count: {
-            comments: number;
-            attachments: number;
         };
         checklist: {
             projectId: number;
@@ -49,9 +49,9 @@ export declare class TasksController {
             email: string;
             avatarUrl: string | null;
         } | null;
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -61,9 +61,9 @@ export declare class TasksController {
         statusId: number;
     }>;
     update(taskId: number, dto: UpdateTaskDto, user: AuthenticatedUser): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;
@@ -73,9 +73,9 @@ export declare class TasksController {
         statusId: number;
     } | null>;
     assign(taskId: number, dto: AssignTaskDto, user: AuthenticatedUser): Promise<{
-        title: string;
         id: number;
         deletedAt: Date | null;
+        title: string;
         description: string | null;
         dueDate: Date | null;
         orderIndex: number | null;

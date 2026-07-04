@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
@@ -17,7 +18,8 @@ export declare class AuthService {
     private readonly configService;
     private readonly redisService;
     private readonly mailService;
-    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, redisService: RedisService, mailService: MailService);
+    private readonly activityLogService;
+    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, redisService: RedisService, mailService: MailService, activityLogService: ActivityLogService);
     private generateOtp;
     private hashPassword;
     private comparePassword;

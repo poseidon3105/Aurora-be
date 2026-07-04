@@ -1,13 +1,15 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 export declare class CommentsService {
     private readonly prisma;
     private readonly mailService;
     private readonly notificationsService;
-    constructor(prisma: PrismaService, mailService: MailService, notificationsService: NotificationsService);
+    private readonly activityLogService;
+    constructor(prisma: PrismaService, mailService: MailService, notificationsService: NotificationsService, activityLogService: ActivityLogService);
     private isProjectMember;
     private hasProjectRole;
     private findTaskWithProjectOrThrow;

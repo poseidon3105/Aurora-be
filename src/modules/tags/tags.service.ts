@@ -1,11 +1,11 @@
-import {
-  Injectable,
+import { Injectable,
   BadRequestException,
   NotFoundException,
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { AssignTagDto } from './dto/assign-tag.dto';
@@ -13,7 +13,10 @@ import { ProjectMemberStatus } from '@prisma/client';
 
 @Injectable()
 export class TagsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLogService: ActivityLogService,
+  ) {}
 
   // ───────────────────────────
   //  Helper: Find project or throw 404
@@ -172,6 +175,16 @@ export class TagsService {
       },
     });
 
+    // Activity Log: TAG_CREATED
+    await this.activityLogService.create(
+      userId,
+      'TAG_CREATED',
+      'TAG',
+      tag.id,
+      null,
+      JSON.stringify({ name: tag.name, color: tag.color }),
+    ).catch(() => {});
+
     return {
       id: tag.id,
       name: tag.name,
@@ -244,6 +257,19 @@ export class TagsService {
       },
     });
 
+    // Activity Log: TAG_UPDATED
+    await this.activityLogService.create(
+      userId,
+      'TAG_UPDATED',
+      'TAG',
+      tagId,
+      JSON.stringify({ name: tag.name, color: tag.color }),
+      JSON.stringify({
+        name: dto.name ?? tag.name,
+        color: dto.color ?? tag.color,
+      }),
+    ).catch(() => {});
+
     return { message: 'Tag updated successfully' };
   }
 
@@ -271,6 +297,15 @@ export class TagsService {
       this.prisma.taskTag.deleteMany({ where: { tagId } }),
       this.prisma.tag.delete({ where: { id: tagId } }),
     ]);
+
+    // Activity Log: TAG_DELETED
+    await this.activityLogService.create(
+      userId,
+      'TAG_DELETED',
+      'TAG',
+      tagId,
+      JSON.stringify({ name: tag.name, color: tag.color }),
+    ).catch(() => {});
 
     return { message: 'Tag deleted successfully' };
   }
@@ -324,6 +359,16 @@ export class TagsService {
       data: { taskId, tagId },
     });
 
+    // Activity Log: TAG_ASSIGNED
+    await this.activityLogService.create(
+      userId,
+      'TAG_ASSIGNED',
+      'TAG',
+      tagId,
+      null,
+      JSON.stringify({ taskId, tagName: tag.name }),
+    ).catch(() => {});
+
     return { message: 'Tag assigned successfully' };
   }
 
@@ -365,6 +410,15 @@ export class TagsService {
     await this.prisma.taskTag.delete({
       where: { taskId_tagId: { taskId, tagId } },
     });
+
+    // Activity Log: TAG_REMOVED
+    await this.activityLogService.create(
+      userId,
+      'TAG_REMOVED',
+      'TAG',
+      tagId,
+      JSON.stringify({ taskId }),
+    ).catch(() => {});
 
     return { message: 'Tag removed from task successfully' };
   }

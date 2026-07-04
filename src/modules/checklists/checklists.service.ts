@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateChecklistDto } from './dto/create-checklist.dto';
 import { UpdateChecklistDto } from './dto/update-checklist.dto';
 import { ChangeChecklistStatusDto } from './dto/change-checklist-status.dto';
@@ -13,7 +14,10 @@ import { ChecklistStatus, ProjectStatus, ProjectMemberStatus } from '@prisma/cli
 
 @Injectable()
 export class ChecklistsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLogService: ActivityLogService,
+  ) {}
 
   // ───────────────────────────
   //  Helper: Find checklist or throw 404
@@ -99,7 +103,7 @@ export class ChecklistsService {
     }
 
     // Create checklist
-    return this.prisma.checklist.create({
+    const checklist = await this.prisma.checklist.create({
       data: {
         projectId,
         title,
@@ -109,6 +113,18 @@ export class ChecklistsService {
         status: ChecklistStatus.OPEN,
       },
     });
+
+    // Activity Log: CHECKLIST_CREATED
+    await this.activityLogService.create(
+      userId,
+      'CHECKLIST_CREATED',
+      'CHECKLIST',
+      checklist.id,
+      null,
+      JSON.stringify({ title, description }),
+    ).catch(() => {});
+
+    return checklist;
   }
 
   // ───────────────────────────
@@ -210,7 +226,7 @@ export class ChecklistsService {
       }
     }
 
-    return this.prisma.checklist.update({
+    const updated = await this.prisma.checklist.update({
       where: { id: checklistId },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
@@ -220,6 +236,21 @@ export class ChecklistsService {
         }),
       },
     });
+
+    // Activity Log: CHECKLIST_UPDATED
+    await this.activityLogService.create(
+      userId,
+      'CHECKLIST_UPDATED',
+      'CHECKLIST',
+      checklistId,
+      JSON.stringify({ title: checklist.title, description: checklist.description }),
+      JSON.stringify({
+        title: dto.title ?? checklist.title,
+        description: dto.description !== undefined ? dto.description : checklist.description,
+      }),
+    ).catch(() => {});
+
+    return updated;
   }
 
   // ───────────────────────────
@@ -251,10 +282,22 @@ export class ChecklistsService {
       );
     }
 
-    return this.prisma.checklist.update({
+    const result = await this.prisma.checklist.update({
       where: { id: checklistId },
       data: { status: targetStatus },
     });
+
+    // Activity Log: CHECKLIST_STATUS_CHANGED
+    await this.activityLogService.create(
+      userId,
+      'CHECKLIST_STATUS_CHANGED',
+      'CHECKLIST',
+      checklistId,
+      JSON.stringify({ status: currentStatus }),
+      JSON.stringify({ status: targetStatus }),
+    ).catch(() => {});
+
+    return result;
   }
 
   // ───────────────────────────
@@ -308,9 +351,20 @@ export class ChecklistsService {
     }
 
     // Soft delete
-    return this.prisma.checklist.update({
+    const deleted = await this.prisma.checklist.update({
       where: { id: checklistId },
       data: { deletedAt: new Date() },
     });
+
+    // Activity Log: CHECKLIST_DELETED
+    await this.activityLogService.create(
+      userId,
+      'CHECKLIST_DELETED',
+      'CHECKLIST',
+      checklistId,
+      JSON.stringify({ title: checklist.title, status: checklist.status }),
+    ).catch(() => {});
+
+    return deleted;
   }
 }

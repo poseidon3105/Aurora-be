@@ -10,6 +10,7 @@ exports.CommentsModule = void 0;
 const common_1 = require("@nestjs/common");
 const auth_module_1 = require("../auth/auth.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const activity_log_module_1 = require("../activity-log/activity-log.module");
 const comments_controller_1 = require("./comments.controller");
 const comments_service_1 = require("./comments.service");
 let CommentsModule = class CommentsModule {
@@ -17,7 +18,7 @@ let CommentsModule = class CommentsModule {
 exports.CommentsModule = CommentsModule;
 exports.CommentsModule = CommentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule, notifications_module_1.NotificationsModule],
+        imports: [auth_module_1.AuthModule, notifications_module_1.NotificationsModule, activity_log_module_1.ActivityLogModule],
         controllers: [comments_controller_1.CommentsController],
         providers: [comments_service_1.CommentsService],
         exports: [comments_service_1.CommentsService],

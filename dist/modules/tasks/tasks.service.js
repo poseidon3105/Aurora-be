@@ -13,11 +13,13 @@ exports.TasksService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const activity_log_service_1 = require("../activity-log/activity-log.service");
 const client_1 = require("@prisma/client");
 let TasksService = class TasksService {
-    constructor(prisma, notificationsService) {
+    constructor(prisma, notificationsService, activityLogService) {
         this.prisma = prisma;
         this.notificationsService = notificationsService;
+        this.activityLogService = activityLogService;
     }
     async findTaskOrThrow(taskId) {
         const task = await this.prisma.checklistItem.findUnique({
@@ -155,6 +157,7 @@ let TasksService = class TasksService {
                 data: { status: client_1.ChecklistStatus.OPEN },
             });
         }
+        await this.activityLogService.create(userId, 'TASK_CREATED', 'TASK', task.id, null, JSON.stringify({ title, assigneeId })).catch(() => { });
         return {
             id: task.id,
             title: task.title,
@@ -264,6 +267,7 @@ let TasksService = class TasksService {
         });
         if (dto.assigneeId !== undefined && !dto.assigneeId && task.assigneeId) {
             await this.notificationsService.create(task.assigneeId, 'Task Unassigned', `You have been removed from task "${task.title}".`).catch(() => { });
+            await this.activityLogService.create(userId, 'TASK_UNASSIGNED', 'TASK', taskId, JSON.stringify({ assigneeId: task.assigneeId })).catch(() => { });
         }
         if (dto.assigneeId !== undefined && dto.assigneeId && dto.assigneeId !== task.assigneeId) {
             const assigner = await this.prisma.user.findUnique({
@@ -272,6 +276,18 @@ let TasksService = class TasksService {
             });
             const assignerName = assigner?.fullName || 'A user';
             await this.notificationsService.create(dto.assigneeId, 'Task Assigned', `${assignerName} assigned you to task "${task.title}".`).catch(() => { });
+            await this.activityLogService.create(userId, 'TASK_ASSIGNED', 'TASK', taskId, JSON.stringify({ assigneeId: task.assigneeId }), JSON.stringify({ assigneeId: dto.assigneeId })).catch(() => { });
+        }
+        const hasFieldChanges = dto.title !== undefined || dto.description !== undefined || dto.dueDate !== undefined;
+        if (hasFieldChanges) {
+            await this.activityLogService.create(userId, 'TASK_UPDATED', 'TASK', taskId, JSON.stringify({
+                title: task.title,
+                ...(dto.title !== undefined && {}),
+            }), JSON.stringify({
+                ...(dto.title !== undefined && { title: dto.title }),
+                ...(dto.description !== undefined && { description: dto.description }),
+                ...(dto.dueDate !== undefined && { dueDate: dto.dueDate }),
+            })).catch(() => { });
         }
         return this.prisma.checklistItem.findUnique({
             where: { id: taskId },
@@ -302,6 +318,7 @@ let TasksService = class TasksService {
         });
         const assignerName = assigner?.fullName || 'A user';
         await this.notificationsService.create(dto.assigneeId, 'Task Assigned', `${assignerName} assigned you to task "${task.title}".`).catch(() => { });
+        await this.activityLogService.create(userId, 'TASK_ASSIGNED', 'TASK', taskId, JSON.stringify({ assigneeId: task.assigneeId }), JSON.stringify({ assigneeId: dto.assigneeId })).catch(() => { });
         return this.prisma.checklistItem.findUnique({
             where: { id: taskId },
         });
@@ -332,6 +349,9 @@ let TasksService = class TasksService {
         if (doneStatus && dto.statusId === doneStatus.id) {
             completedAt = new Date();
         }
+        const oldStatus = await this.prisma.taskStatus.findUnique({
+            where: { id: task.statusId },
+        });
         await this.prisma.checklistItem.update({
             where: { id: taskId },
             data: {
@@ -343,6 +363,7 @@ let TasksService = class TasksService {
         if (doneStatus && dto.statusId === doneStatus.id && task.assigneeId && task.assigneeId !== userId) {
             await this.notificationsService.create(task.assigneeId, 'Task Completed', `Task "${task.title}" has been completed.`).catch(() => { });
         }
+        await this.activityLogService.create(userId, doneStatus && dto.statusId === doneStatus.id ? 'TASK_COMPLETED' : 'TASK_STATUS_CHANGED', 'TASK', taskId, JSON.stringify({ status: oldStatus?.name || task.statusId }), JSON.stringify({ status: newStatus.name })).catch(() => { });
         return {
             message: 'Status updated successfully',
             status: newStatus.name,
@@ -396,11 +417,12 @@ let TasksService = class TasksService {
         if (!isManager && !isAssignee) {
             throw new common_1.ForbiddenException('Only a project manager or the task creator can delete this task');
         }
-        await this.prisma.checklistItem.update({
+        const deleted = await this.prisma.checklistItem.update({
             where: { id: taskId },
             data: { deletedAt: new Date() },
         });
         await this.autoUpdateChecklistStatus(task.checklistId);
+        await this.activityLogService.create(userId, 'TASK_DELETED', 'TASK', taskId, JSON.stringify({ title: task.title, assigneeId: task.assigneeId })).catch(() => { });
         return { message: 'Task deleted successfully' };
     }
     async getTaskSummary(projectId, userId) {
@@ -446,6 +468,7 @@ exports.TasksService = TasksService;
 exports.TasksService = TasksService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        activity_log_service_1.ActivityLogService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   // ───────────────────────────
@@ -121,6 +123,14 @@ export class AuthService {
     await this.redisService.set(`${REDIS_KEYS.OTP_VERIFY}${email}`, otp, otpTtl);
     await this.mailService.sendVerificationOtp(email, otp);
 
+    // Activity Log: REGISTER
+    await this.activityLogService.create(
+      user.id,
+      'REGISTER',
+      'USER',
+      user.id,
+    ).catch(() => {});
+
     return { message: 'Registration successful. Please verify your email.' };
   }
 
@@ -143,7 +153,7 @@ export class AuthService {
     }
 
     // Update user status
-    await this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { email },
       data: {
         status: UserStatus.ACTIVE,
@@ -314,6 +324,7 @@ export class AuthService {
 
   async logout(userId: number) {
     await this.redisService.del(`${REDIS_KEYS.REFRESH}${userId}`);
+
     return { message: 'Logged out successfully' };
   }
 
@@ -330,7 +341,9 @@ export class AuthService {
       return { message: 'If the email exists, a password reset OTP has been sent' };
     }
 
-    return this.handleOtpResend(email, 'reset');
+    const result = await this.handleOtpResend(email, 'reset');
+
+    return result;
   }
 
   // ───────────────────────────

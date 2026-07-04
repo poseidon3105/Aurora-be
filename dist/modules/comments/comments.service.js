@@ -14,11 +14,13 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const mail_service_1 = require("../../mail/mail.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const activity_log_service_1 = require("../activity-log/activity-log.service");
 let CommentsService = class CommentsService {
-    constructor(prisma, mailService, notificationsService) {
+    constructor(prisma, mailService, notificationsService, activityLogService) {
         this.prisma = prisma;
         this.mailService = mailService;
         this.notificationsService = notificationsService;
+        this.activityLogService = activityLogService;
     }
     async isProjectMember(projectId, userId) {
         const member = await this.prisma.projectMember.findFirst({
@@ -167,6 +169,7 @@ let CommentsService = class CommentsService {
         if (sender) {
             await this.notifyTaskParticipants(taskId, task.checklist.projectId, sender.id, sender.fullName, task.title);
         }
+        await this.activityLogService.create(userId, 'COMMENT_CREATED', 'TASK_COMMENT', comment.id).catch(() => { });
         return {
             id: comment.id,
             content: comment.content,
@@ -213,6 +216,7 @@ let CommentsService = class CommentsService {
                 updatedAt: new Date(),
             },
         });
+        await this.activityLogService.create(userId, 'COMMENT_UPDATED', 'TASK_COMMENT', commentId).catch(() => { });
         return {
             id: updated.id,
             content: updated.content,
@@ -233,6 +237,7 @@ let CommentsService = class CommentsService {
             where: { id: commentId },
             data: { deletedAt: new Date() },
         });
+        await this.activityLogService.create(userId, 'COMMENT_DELETED', 'TASK_COMMENT', commentId).catch(() => { });
         return { message: 'Comment deleted successfully' };
     }
 };
@@ -241,6 +246,7 @@ exports.CommentsService = CommentsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         mail_service_1.MailService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        activity_log_service_1.ActivityLogService])
 ], CommentsService);
 //# sourceMappingURL=comments.service.js.map

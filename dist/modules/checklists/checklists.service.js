@@ -12,10 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChecklistsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const activity_log_service_1 = require("../activity-log/activity-log.service");
 const client_1 = require("@prisma/client");
 let ChecklistsService = class ChecklistsService {
-    constructor(prisma) {
+    constructor(prisma, activityLogService) {
         this.prisma = prisma;
+        this.activityLogService = activityLogService;
     }
     async findChecklistOrThrow(checklistId) {
         const checklist = await this.prisma.checklist.findUnique({
@@ -69,7 +71,7 @@ let ChecklistsService = class ChecklistsService {
                 throw new common_1.BadRequestException('Due date must be before the project end date');
             }
         }
-        return this.prisma.checklist.create({
+        const checklist = await this.prisma.checklist.create({
             data: {
                 projectId,
                 title,
@@ -79,6 +81,8 @@ let ChecklistsService = class ChecklistsService {
                 status: client_1.ChecklistStatus.OPEN,
             },
         });
+        await this.activityLogService.create(userId, 'CHECKLIST_CREATED', 'CHECKLIST', checklist.id, null, JSON.stringify({ title, description })).catch(() => { });
+        return checklist;
     }
     async findAll(projectId, userId) {
         const isMember = await this.isProjectMember(projectId, userId);
@@ -146,7 +150,7 @@ let ChecklistsService = class ChecklistsService {
                 }
             }
         }
-        return this.prisma.checklist.update({
+        const updated = await this.prisma.checklist.update({
             where: { id: checklistId },
             data: {
                 ...(dto.title !== undefined && { title: dto.title }),
@@ -156,6 +160,11 @@ let ChecklistsService = class ChecklistsService {
                 }),
             },
         });
+        await this.activityLogService.create(userId, 'CHECKLIST_UPDATED', 'CHECKLIST', checklistId, JSON.stringify({ title: checklist.title, description: checklist.description }), JSON.stringify({
+            title: dto.title ?? checklist.title,
+            description: dto.description !== undefined ? dto.description : checklist.description,
+        })).catch(() => { });
+        return updated;
     }
     async changeStatus(checklistId, dto, userId) {
         const checklist = await this.findChecklistOrThrow(checklistId);
@@ -173,10 +182,12 @@ let ChecklistsService = class ChecklistsService {
         if (!validTransitions[currentStatus].includes(targetStatus)) {
             throw new common_1.BadRequestException(`Cannot transition from ${currentStatus} to ${targetStatus}. Allowed flow: OPEN → IN_PROGRESS → DONE`);
         }
-        return this.prisma.checklist.update({
+        const result = await this.prisma.checklist.update({
             where: { id: checklistId },
             data: { status: targetStatus },
         });
+        await this.activityLogService.create(userId, 'CHECKLIST_STATUS_CHANGED', 'CHECKLIST', checklistId, JSON.stringify({ status: currentStatus }), JSON.stringify({ status: targetStatus })).catch(() => { });
+        return result;
     }
     async remove(checklistId, userId) {
         const checklist = await this.findChecklistOrThrow(checklistId);
@@ -214,15 +225,18 @@ let ChecklistsService = class ChecklistsService {
                 throw new common_1.ConflictException('Cannot delete checklist with incomplete tasks');
             }
         }
-        return this.prisma.checklist.update({
+        const deleted = await this.prisma.checklist.update({
             where: { id: checklistId },
             data: { deletedAt: new Date() },
         });
+        await this.activityLogService.create(userId, 'CHECKLIST_DELETED', 'CHECKLIST', checklistId, JSON.stringify({ title: checklist.title, status: checklist.status })).catch(() => { });
+        return deleted;
     }
 };
 exports.ChecklistsService = ChecklistsService;
 exports.ChecklistsService = ChecklistsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        activity_log_service_1.ActivityLogService])
 ], ChecklistsService);
 //# sourceMappingURL=checklists.service.js.map

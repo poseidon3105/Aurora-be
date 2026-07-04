@@ -49,16 +49,18 @@ const prisma_service_1 = require("../../prisma/prisma.service");
 const redis_service_1 = require("../../redis/redis.service");
 const mail_service_1 = require("../../mail/mail.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const activity_log_service_1 = require("../activity-log/activity-log.service");
 const client_1 = require("@prisma/client");
 const crypto = __importStar(require("crypto"));
 const projects_constants_1 = require("./projects.constants");
 let ProjectsService = class ProjectsService {
-    constructor(prisma, configService, redisService, mailService, notificationsService) {
+    constructor(prisma, configService, redisService, mailService, notificationsService, activityLogService) {
         this.prisma = prisma;
         this.configService = configService;
         this.redisService = redisService;
         this.mailService = mailService;
         this.notificationsService = notificationsService;
+        this.activityLogService = activityLogService;
     }
     async ensureProjectRole(name) {
         let role = await this.prisma.projectRole.findUnique({ where: { name } });
@@ -134,6 +136,7 @@ let ProjectsService = class ProjectsService {
                 roleId: managerRole.id,
             },
         });
+        await this.activityLogService.create(userId, 'PROJECT_CREATED', 'PROJECT', project.id, null, JSON.stringify({ name, description })).catch(() => { });
         return project;
     }
     async findAll(userId) {
@@ -191,7 +194,7 @@ let ProjectsService = class ProjectsService {
         if (project.startDate && endDate && endDate <= project.startDate) {
             throw new common_1.BadRequestException('End date must be later than start date');
         }
-        return this.prisma.project.update({
+        const updated = await this.prisma.project.update({
             where: { id: projectId },
             data: {
                 ...(dto.name !== undefined && { name: dto.name }),
@@ -199,6 +202,16 @@ let ProjectsService = class ProjectsService {
                 ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
             },
         });
+        const oldVal = JSON.stringify({
+            name: project.name,
+            description: project.description,
+        });
+        const newVal = JSON.stringify({
+            name: dto.name ?? project.name,
+            description: dto.description !== undefined ? dto.description : project.description,
+        });
+        await this.activityLogService.create(userId, 'PROJECT_UPDATED', 'PROJECT', projectId, oldVal, newVal).catch(() => { });
+        return updated;
     }
     async archive(projectId, userId) {
         const project = await this.findProjectOrThrow(projectId);
@@ -209,10 +222,12 @@ let ProjectsService = class ProjectsService {
         if (project.status !== client_1.ProjectStatus.ACTIVE) {
             throw new common_1.ConflictException('Only active projects can be archived');
         }
-        return this.prisma.project.update({
+        const archived = await this.prisma.project.update({
             where: { id: projectId },
             data: { status: client_1.ProjectStatus.ARCHIVED },
         });
+        await this.activityLogService.create(userId, 'PROJECT_ARCHIVED', 'PROJECT', projectId).catch(() => { });
+        return archived;
     }
     async complete(projectId, userId) {
         const project = await this.findProjectOrThrow(projectId);
@@ -223,10 +238,12 @@ let ProjectsService = class ProjectsService {
         if (project.status !== client_1.ProjectStatus.ACTIVE) {
             throw new common_1.ConflictException('Only active projects can be completed');
         }
-        return this.prisma.project.update({
+        const completed = await this.prisma.project.update({
             where: { id: projectId },
             data: { status: client_1.ProjectStatus.COMPLETED },
         });
+        await this.activityLogService.create(userId, 'PROJECT_COMPLETED', 'PROJECT', projectId).catch(() => { });
+        return completed;
     }
     async remove(projectId, userId) {
         const project = await this.findProjectOrThrow(projectId);
@@ -235,10 +252,12 @@ let ProjectsService = class ProjectsService {
         if (!isManager && !isElevated) {
             throw new common_1.ForbiddenException('Only a project manager, super admin, or admin can delete this project');
         }
-        return this.prisma.project.update({
+        const deleted = await this.prisma.project.update({
             where: { id: projectId },
             data: { deletedAt: new Date() },
         });
+        await this.activityLogService.create(userId, 'PROJECT_DELETED', 'PROJECT', projectId, JSON.stringify({ name: project.name, status: project.status })).catch(() => { });
+        return deleted;
     }
     async inviteMember(projectId, dto, userId) {
         const { email, roleId } = dto;
@@ -299,6 +318,7 @@ let ProjectsService = class ProjectsService {
         const existingMember = await this.prisma.projectMember.findUnique({
             where: { projectId_userId: { projectId, userId: authUser.id } },
         });
+        let memberId;
         if (existingMember) {
             if (existingMember.status === client_1.ProjectMemberStatus.ACTIVE) {
                 await this.redisService.del(`${projects_constants_1.PROJECT_REDIS_KEYS.INVITE}${token}`);
@@ -313,19 +333,22 @@ let ProjectsService = class ProjectsService {
                     joinedAt: new Date(),
                 },
             });
+            memberId = existingMember.id;
         }
         else {
-            await this.prisma.projectMember.create({
+            const newMember = await this.prisma.projectMember.create({
                 data: {
                     projectId,
                     userId: authUser.id,
                     roleId,
                 },
             });
+            memberId = newMember.id;
         }
         await this.redisService.del(`${projects_constants_1.PROJECT_REDIS_KEYS.INVITE}${token}`);
         await this.notificationsService.create(authUser.id, 'Added to Project', `You have been added to project "${project.name}".`).catch(() => {
         });
+        await this.activityLogService.create(authUser.id, 'MEMBER_ADDED', 'PROJECT_MEMBER', memberId, null, JSON.stringify({ role: role.name })).catch(() => { });
         return { message: 'Joined project successfully' };
     }
     async getMembers(projectId, userId) {
@@ -422,6 +445,7 @@ let ProjectsService = class ProjectsService {
         });
         await this.notificationsService.create(member.userId, 'Role Changed', `Your role has been changed to ${newRole.name} in project "${roleChangeProject?.name || 'Unknown'}".`).catch(() => {
         });
+        await this.activityLogService.create(userId, 'MEMBER_ROLE_UPDATED', 'PROJECT_MEMBER', member.id, JSON.stringify({ role: member.roleId }), JSON.stringify({ role: dto.roleId })).catch(() => { });
         return { message: 'Role updated successfully' };
     }
     async removeMember(projectId, memberId, userId) {
@@ -458,6 +482,7 @@ let ProjectsService = class ProjectsService {
             where: { id: memberId },
             data: { status: client_1.ProjectMemberStatus.INACTIVE, deletedAt: new Date() },
         });
+        await this.activityLogService.create(userId, 'MEMBER_REMOVED', 'PROJECT_MEMBER', member.id, JSON.stringify({ userId: member.userId })).catch(() => { });
         return { message: 'Member removed successfully' };
     }
     async leaveProject(projectId, userId) {
@@ -501,6 +526,7 @@ exports.ProjectsService = ProjectsService = __decorate([
         config_1.ConfigService,
         redis_service_1.RedisService,
         mail_service_1.MailService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        activity_log_service_1.ActivityLogService])
 ], ProjectsService);
 //# sourceMappingURL=projects.service.js.map

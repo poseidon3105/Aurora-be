@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChecklistsModule = void 0;
 const common_1 = require("@nestjs/common");
 const auth_module_1 = require("../auth/auth.module");
+const activity_log_module_1 = require("../activity-log/activity-log.module");
 const checklists_controller_1 = require("./checklists.controller");
 const checklists_service_1 = require("./checklists.service");
 let ChecklistsModule = class ChecklistsModule {
@@ -16,7 +17,7 @@ let ChecklistsModule = class ChecklistsModule {
 exports.ChecklistsModule = ChecklistsModule;
 exports.ChecklistsModule = ChecklistsModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule],
+        imports: [auth_module_1.AuthModule, activity_log_module_1.ActivityLogModule],
         controllers: [checklists_controller_1.ChecklistsController],
         providers: [checklists_service_1.ChecklistsService],
         exports: [checklists_service_1.ChecklistsService],

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -16,6 +17,7 @@ export class CommentsService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   // ───────────────────────────
@@ -272,6 +274,14 @@ export class CommentsService {
       );
     }
 
+    // Activity Log: COMMENT_CREATED
+    await this.activityLogService.create(
+      userId,
+      'COMMENT_CREATED',
+      'TASK_COMMENT',
+      comment.id,
+    ).catch(() => {});
+
     return {
       id: comment.id,
       content: comment.content,
@@ -342,6 +352,14 @@ export class CommentsService {
       },
     });
 
+    // Activity Log: COMMENT_UPDATED
+    await this.activityLogService.create(
+      userId,
+      'COMMENT_UPDATED',
+      'TASK_COMMENT',
+      commentId,
+    ).catch(() => {});
+
     return {
       id: updated.id,
       content: updated.content,
@@ -377,6 +395,14 @@ export class CommentsService {
       where: { id: commentId },
       data: { deletedAt: new Date() },
     });
+
+    // Activity Log: COMMENT_DELETED
+    await this.activityLogService.create(
+      userId,
+      'COMMENT_DELETED',
+      'TASK_COMMENT',
+      commentId,
+    ).catch(() => {});
 
     return { message: 'Comment deleted successfully' };
   }

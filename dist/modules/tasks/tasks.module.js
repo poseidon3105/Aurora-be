@@ -10,6 +10,7 @@ exports.TasksModule = void 0;
 const common_1 = require("@nestjs/common");
 const auth_module_1 = require("../auth/auth.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const activity_log_module_1 = require("../activity-log/activity-log.module");
 const tasks_controller_1 = require("./tasks.controller");
 const tasks_service_1 = require("./tasks.service");
 let TasksModule = class TasksModule {
@@ -17,7 +18,7 @@ let TasksModule = class TasksModule {
 exports.TasksModule = TasksModule;
 exports.TasksModule = TasksModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule, notifications_module_1.NotificationsModule],
+        imports: [auth_module_1.AuthModule, notifications_module_1.NotificationsModule, activity_log_module_1.ActivityLogModule],
         controllers: [tasks_controller_1.TasksController],
         providers: [tasks_service_1.TasksService],
         exports: [tasks_service_1.TasksService],

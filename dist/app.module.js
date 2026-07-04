@@ -21,6 +21,7 @@ const comments_module_1 = require("./modules/comments/comments.module");
 const attachments_module_1 = require("./modules/attachments/attachments.module");
 const tags_module_1 = require("./modules/tags/tags.module");
 const notifications_module_1 = require("./modules/notifications/notifications.module");
+const activity_log_module_1 = require("./modules/activity-log/activity-log.module");
 const azure_blob_module_1 = require("./azure-blob/azure-blob.module");
 let AppModule = class AppModule {
 };
@@ -45,6 +46,7 @@ exports.AppModule = AppModule = __decorate([
             attachments_module_1.AttachmentsModule,
             tags_module_1.TagsModule,
             notifications_module_1.NotificationsModule,
+            activity_log_module_1.ActivityLogModule,
         ],
     })
 ], AppModule);

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AzureBlobService } from '../../azure-blob/azure-blob.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { validateFile, normalizeFileName } from './file-validation.util';
 import * as crypto from 'crypto';
 
@@ -20,6 +21,7 @@ export class AttachmentsService {
     private readonly azureBlobService: AzureBlobService,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityLogService: ActivityLogService,
   ) {
     this.maxFileSize = this.configService.get<number>('upload.maxFileSize', 20971520);
   }
@@ -199,6 +201,14 @@ export class AttachmentsService {
       task.title,
     );
 
+    // Activity Log: ATTACHMENT_UPLOADED
+    await this.activityLogService.create(
+      userId,
+      'ATTACHMENT_UPLOADED',
+      'TASK_ATTACHMENT',
+      attachment.id,
+    ).catch(() => {});
+
     return {
       id: attachment.id,
       fileName: attachment.fileName,
@@ -289,6 +299,15 @@ export class AttachmentsService {
       where: { id: attachmentId },
       data: { deletedAt: new Date() },
     });
+
+    // Activity Log: ATTACHMENT_DELETED
+    await this.activityLogService.create(
+      userId,
+      'ATTACHMENT_DELETED',
+      'TASK_ATTACHMENT',
+      attachmentId,
+      JSON.stringify({ fileName: attachment.fileName }),
+    ).catch(() => {});
 
     // Attempt physical deletion from Azure Blob Storage (non-blocking)
     if (attachment.fileUrl) {

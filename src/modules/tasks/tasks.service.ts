@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -19,6 +20,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   // ───────────────────────────
@@ -216,6 +218,16 @@ export class TasksService {
       });
     }
 
+    // Activity Log: TASK_CREATED
+    await this.activityLogService.create(
+      userId,
+      'TASK_CREATED',
+      'TASK',
+      task.id,
+      null,
+      JSON.stringify({ title, assigneeId }),
+    ).catch(() => {});
+
     return {
       id: task.id,
       title: task.title,
@@ -365,6 +377,15 @@ export class TasksService {
         'Task Unassigned',
         `You have been removed from task "${task.title}".`,
       ).catch(() => {});
+
+      // Activity Log: TASK_UNASSIGNED
+      await this.activityLogService.create(
+        userId,
+        'TASK_UNASSIGNED',
+        'TASK',
+        taskId,
+        JSON.stringify({ assigneeId: task.assigneeId }),
+      ).catch(() => {});
     }
 
     // Notification: Task assigned to someone new via update
@@ -378,6 +399,36 @@ export class TasksService {
         dto.assigneeId,
         'Task Assigned',
         `${assignerName} assigned you to task "${task.title}".`,
+      ).catch(() => {});
+
+      // Activity Log: TASK_ASSIGNED
+      await this.activityLogService.create(
+        userId,
+        'TASK_ASSIGNED',
+        'TASK',
+        taskId,
+        JSON.stringify({ assigneeId: task.assigneeId }),
+        JSON.stringify({ assigneeId: dto.assigneeId }),
+      ).catch(() => {});
+    }
+
+    // Activity Log: TASK_UPDATED (for non-assignment changes)
+    const hasFieldChanges = dto.title !== undefined || dto.description !== undefined || dto.dueDate !== undefined;
+    if (hasFieldChanges) {
+      await this.activityLogService.create(
+        userId,
+        'TASK_UPDATED',
+        'TASK',
+        taskId,
+        JSON.stringify({
+          title: task.title,
+          ...(dto.title !== undefined && {}),
+        }),
+        JSON.stringify({
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.dueDate !== undefined && { dueDate: dto.dueDate }),
+        }),
       ).catch(() => {});
     }
 
@@ -429,6 +480,16 @@ export class TasksService {
       `${assignerName} assigned you to task "${task.title}".`,
     ).catch(() => {});
 
+    // Activity Log: TASK_ASSIGNED
+    await this.activityLogService.create(
+      userId,
+      'TASK_ASSIGNED',
+      'TASK',
+      taskId,
+      JSON.stringify({ assigneeId: task.assigneeId }),
+      JSON.stringify({ assigneeId: dto.assigneeId }),
+    ).catch(() => {});
+
     return this.prisma.checklistItem.findUnique({
       where: { id: taskId },
     });
@@ -474,7 +535,11 @@ export class TasksService {
       // If status becomes DONE → completed_at = NOW()
       completedAt = new Date();
     }
-    // If status changes from DONE to another → completed_at = NULL (already null by default)
+
+    // Get old status name for activity log
+    const oldStatus = await this.prisma.taskStatus.findUnique({
+      where: { id: task.statusId },
+    });
 
     // Update the task
     await this.prisma.checklistItem.update({
@@ -496,6 +561,16 @@ export class TasksService {
         `Task "${task.title}" has been completed.`,
       ).catch(() => {});
     }
+
+    // Activity Log: TASK_STATUS_CHANGED
+    await this.activityLogService.create(
+      userId,
+      doneStatus && dto.statusId === doneStatus.id ? 'TASK_COMPLETED' : 'TASK_STATUS_CHANGED',
+      'TASK',
+      taskId,
+      JSON.stringify({ status: oldStatus?.name || task.statusId }),
+      JSON.stringify({ status: newStatus.name }),
+    ).catch(() => {});
 
     return {
       message: 'Status updated successfully',
@@ -578,13 +653,7 @@ export class TasksService {
     }
 
     // Authorization: PROJECT_MANAGER or Task Creator
-    // Note: The schema doesn't have a "created by" field on ChecklistItem,
-    // so we use the task's assignee as a proxy for "creator" since tasks are
-    // typically self-created. We check if the user is the assignee.
     const isManager = await this.hasProjectRole(checklist.project.id, userId, 'PROJECT_MANAGER');
-    // For "task creator" - the best proxy is if they're the assignee or a project member
-    // Actually, looking at the requirements: "PROJECT_MANAGER, Task Creator"
-    // There's no created_by on ChecklistItem, so we'll authorize if they're the assignee
     const isAssignee = task.assigneeId === userId;
 
     if (!isManager && !isAssignee) {
@@ -592,13 +661,22 @@ export class TasksService {
     }
 
     // Soft delete
-    await this.prisma.checklistItem.update({
+    const deleted = await this.prisma.checklistItem.update({
       where: { id: taskId },
       data: { deletedAt: new Date() },
     });
 
     // Auto-update checklist status after task deletion
     await this.autoUpdateChecklistStatus(task.checklistId);
+
+    // Activity Log: TASK_DELETED
+    await this.activityLogService.create(
+      userId,
+      'TASK_DELETED',
+      'TASK',
+      taskId,
+      JSON.stringify({ title: task.title, assigneeId: task.assigneeId }),
+    ).catch(() => {});
 
     return { message: 'Task deleted successfully' };
   }

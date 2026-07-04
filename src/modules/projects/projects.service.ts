@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -27,6 +28,7 @@ export class ProjectsService {
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   // ───────────────────────────
@@ -149,6 +151,16 @@ export class ProjectsService {
       },
     });
 
+    // Activity Log: PROJECT_CREATED
+    await this.activityLogService.create(
+      userId,
+      'PROJECT_CREATED',
+      'PROJECT',
+      project.id,
+      null,
+      JSON.stringify({ name, description }),
+    ).catch(() => {});
+
     return project;
   }
 
@@ -235,7 +247,7 @@ export class ProjectsService {
       throw new BadRequestException('End date must be later than start date');
     }
 
-    return this.prisma.project.update({
+    const updated = await this.prisma.project.update({
       where: { id: projectId },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -243,6 +255,26 @@ export class ProjectsService {
         ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
       },
     });
+
+    // Activity Log: PROJECT_UPDATED
+    const oldVal = JSON.stringify({
+      name: project.name,
+      description: project.description,
+    });
+    const newVal = JSON.stringify({
+      name: dto.name ?? project.name,
+      description: dto.description !== undefined ? dto.description : project.description,
+    });
+    await this.activityLogService.create(
+      userId,
+      'PROJECT_UPDATED',
+      'PROJECT',
+      projectId,
+      oldVal,
+      newVal,
+    ).catch(() => {});
+
+    return updated;
   }
 
   // ───────────────────────────
@@ -263,10 +295,20 @@ export class ProjectsService {
       throw new ConflictException('Only active projects can be archived');
     }
 
-    return this.prisma.project.update({
+    const archived = await this.prisma.project.update({
       where: { id: projectId },
       data: { status: ProjectStatus.ARCHIVED },
     });
+
+    // Activity Log: PROJECT_ARCHIVED
+    await this.activityLogService.create(
+      userId,
+      'PROJECT_ARCHIVED',
+      'PROJECT',
+      projectId,
+    ).catch(() => {});
+
+    return archived;
   }
 
   // ───────────────────────────
@@ -287,10 +329,20 @@ export class ProjectsService {
       throw new ConflictException('Only active projects can be completed');
     }
 
-    return this.prisma.project.update({
+    const completed = await this.prisma.project.update({
       where: { id: projectId },
       data: { status: ProjectStatus.COMPLETED },
     });
+
+    // Activity Log: PROJECT_COMPLETED
+    await this.activityLogService.create(
+      userId,
+      'PROJECT_COMPLETED',
+      'PROJECT',
+      projectId,
+    ).catch(() => {});
+
+    return completed;
   }
 
   // ───────────────────────────
@@ -309,10 +361,21 @@ export class ProjectsService {
     }
 
     // Soft delete
-    return this.prisma.project.update({
+    const deleted = await this.prisma.project.update({
       where: { id: projectId },
       data: { deletedAt: new Date() },
     });
+
+    // Activity Log: PROJECT_DELETED
+    await this.activityLogService.create(
+      userId,
+      'PROJECT_DELETED',
+      'PROJECT',
+      projectId,
+      JSON.stringify({ name: project.name, status: project.status }),
+    ).catch(() => {});
+
+    return deleted;
   }
 
   // ═══════════════════════════════════════════════
@@ -420,6 +483,7 @@ export class ProjectsService {
     const existingMember = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: authUser.id } },
     });
+    let memberId: number;
     if (existingMember) {
       if (existingMember.status === ProjectMemberStatus.ACTIVE) {
         // Clean up stale invitation
@@ -436,15 +500,17 @@ export class ProjectsService {
           joinedAt: new Date(),
         },
       });
+      memberId = existingMember.id;
     } else {
       // Create new member record
-      await this.prisma.projectMember.create({
+      const newMember = await this.prisma.projectMember.create({
         data: {
           projectId,
           userId: authUser.id,
           roleId,
         },
       });
+      memberId = newMember.id;
     }
 
     // Delete invitation from Redis
@@ -458,6 +524,16 @@ export class ProjectsService {
     ).catch(() => {
       // Silently fail — notification should not block acceptance
     });
+
+    // Activity Log: MEMBER_ADDED
+    await this.activityLogService.create(
+      authUser.id,
+      'MEMBER_ADDED',
+      'PROJECT_MEMBER',
+      memberId,
+      null,
+      JSON.stringify({ role: role.name }),
+    ).catch(() => {});
 
     return { message: 'Joined project successfully' };
   }
@@ -603,6 +679,16 @@ export class ProjectsService {
       // Silently fail
     });
 
+    // Activity Log: MEMBER_ROLE_UPDATED
+    await this.activityLogService.create(
+      userId,
+      'MEMBER_ROLE_UPDATED',
+      'PROJECT_MEMBER',
+      member.id,
+      JSON.stringify({ role: member.roleId }),
+      JSON.stringify({ role: dto.roleId }),
+    ).catch(() => {});
+
     return { message: 'Role updated successfully' };
   }
 
@@ -657,6 +743,15 @@ export class ProjectsService {
       where: { id: memberId },
       data: { status: ProjectMemberStatus.INACTIVE, deletedAt: new Date() },
     });
+
+    // Activity Log: MEMBER_REMOVED
+    await this.activityLogService.create(
+      userId,
+      'MEMBER_REMOVED',
+      'PROJECT_MEMBER',
+      member.id,
+      JSON.stringify({ userId: member.userId }),
+    ).catch(() => {});
 
     return { message: 'Member removed successfully' };
   }
