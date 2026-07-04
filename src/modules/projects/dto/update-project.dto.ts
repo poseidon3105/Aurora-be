@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsDateString, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -15,6 +16,7 @@ export class UpdateProjectDto {
   description?: string;
 
   @ApiPropertyOptional({ example: '2025-12-31', description: 'Project end date' })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsOptional()
   @IsDateString({}, { message: 'Invalid end date format' })
   endDate?: string;

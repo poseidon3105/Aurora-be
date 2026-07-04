@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateProjectDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class UpdateProjectDto {
@@ -31,6 +32,7 @@ __decorate([
 ], UpdateProjectDto.prototype, "description", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: '2025-12-31', description: 'Project end date' }),
+    (0, class_transformer_1.Transform)(({ value }) => (value === '' ? undefined : value)),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsDateString)({}, { message: 'Invalid end date format' }),
     __metadata("design:type", String)
