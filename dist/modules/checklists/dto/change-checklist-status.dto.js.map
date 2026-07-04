@@ -1,0 +1,1 @@
+{"version":3,"file":"change-checklist-status.dto.js","sourceRoot":"","sources":["../../../../src/modules/checklists/dto/change-checklist-status.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAAyC;AACzC,6CAA8C;AAC9C,2CAAiD;AAEjD,MAAa,wBAAwB;CAIpC;AAJD,4DAIC;AADC;IAFC,IAAA,qBAAW,EAAC,EAAE,IAAI,EAAE,wBAAe,EAAE,WAAW,EAAE,eAAe,EAAE,CAAC;IACpE,IAAA,wBAAM,EAAC,wBAAe,CAAC;;wDACC"}
