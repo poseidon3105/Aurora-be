@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Google Login — Aurora</title>
+
+  <!-- Google Identity Services library -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .logo h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p {
+      color: #666;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .google-btn-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+      min-height: 50px;
+    }
+
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #999;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e0e0e0;
+    }
+
+    .api-url {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 20px;
+      word-break: break-all;
+    }
+
+    .api-url code {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .response-section {
+      background: #f8f9fc;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+
+    .response-section h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .response-section pre {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 40px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .response-section pre.empty {
+      color: #888;
+      font-style: italic;
+    }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .status-badge.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-badge.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e0e0e0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .tokens {
+      margin-top: 12px;
+    }
+
+    .token-item {
+      margin-bottom: 8px;
+    }
+
+    .token-item label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      display: block;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .token-item .token-value {
+      background: #1a1a2e;
+      color: #b8d4fe;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      word-break: break-all;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .token-item .token-value:hover {
+      background: #2a2a4e;
+    }
+
+    .token-item .token-value .hint {
+      color: #666;
+      font-style: italic;
+    }
+
+    .info-note {
+      background: #e8f4fd;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #1a5a8a;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .info-note strong {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>Aurora</h1>
+      <p>Workspace Management</p>
+    </div>
+
+    <h2>Test Google Login</h2>
+    <p class="subtitle">Sign in with Google to test the integration</p>
+
+    <div class="info-note">
+      <strong>💡 Tip:</strong> Open your browser's DevTools (<kbd>F12</kbd> → Network tab) to inspect the API request and response.
+    </div>
+
+    <!-- Google Sign-In button will be rendered here -->
+    <div class="google-btn-wrapper" id="gButton"></div>
+
+    <div class="or-divider">API endpoint</div>
+
+    <div class="api-url">
+      POST <code>/auth/google</code> → <code>http://localhost:3000/auth/google</code>
+    </div>
+
+    <!-- Response display -->
+    <div class="response-section" id="responseSection" style="display: none;">
+      <div id="statusBadge"></div>
+      <h3>Response</h3>
+      <pre id="responseOutput" class="empty">Waiting for response...</pre>
+    </div>
+
+    <div class="response-section" id="tokensSection" style="display: none;">
+      <h3>Tokens</h3>
+      <div id="tokensContainer"></div>
+    </div>
+
+    <div class="footer">
+      Make sure your backend is running on <strong>localhost:3000</strong>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+
+    // ─── UI Helpers ──────────────────────────────────────────
+
+    function showResponse(status, data) {
+      const section = document.getElementById('responseSection');
+      const badge = document.getElementById('statusBadge');
+      const output = document.getElementById('responseOutput');
+
+      section.style.display = 'block';
+
+      if (status >= 200 && status < 300) {
+        badge.className = 'status-badge success';
+        badge.textContent = `✓ Success (${status})`;
+      } else {
+        badge.className = 'status-badge error';
+        badge.textContent = `✗ Error (${status})`;
+      }
+
+      output.className = '';
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function showTokens(accessToken, refreshToken) {
+      const section = document.getElementById('tokensSection');
+      const container = document.getElementById('tokensContainer');
+
+      section.style.display = 'block';
+
+      container.innerHTML = '';
+
+      const tokens = [
+        { label: 'Access Token', value: accessToken },
+        { label: 'Refresh Token', value: refreshToken },
+      ];
+
+      tokens.forEach(({ label, value }) => {
+        const item = document.createElement('div');
+        item.className = 'token-item';
+
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        item.appendChild(labelEl);
+
+        const valueEl = document.createElement('div');
+        valueEl.className = 'token-value';
+        valueEl.title = 'Click to copy';
+        valueEl.textContent = value || 'N/A';
+
+        if (value) {
+          valueEl.addEventListener('click', () => {
+            navigator.clipboard.writeText(value).then(() => {
+              const orig = valueEl.textContent;
+              valueEl.textContent = '✓ Copied!';
+              setTimeout(() => { valueEl.textContent = orig; }, 1500);
+            });
+          });
+        }
+
+        item.appendChild(valueEl);
+        container.appendChild(item);
+      });
+    }
+
+    function showError(error) {
+      const section = document.getElementById('responseSection');
+      const badge = document.getElementById('statusBadge');
+      const output = document.getElementById('responseOutput');
+
+      section.style.display = 'block';
+      badge.className = 'status-badge error';
+      badge.textContent = '✗ Error';
+
+      output.className = '';
+      output.textContent = error.toString();
+    }
+
+    // ─── Google Sign-In Callback ──────────────────────────────
+
+    function handleCredentialResponse(response) {
+      const idToken = response.credential;
+      console.log('✅ Got ID token, sending to backend...');
+
+      // Show loading state
+      const output = document.getElementById('responseOutput');
+      output.className = '';
+      output.innerHTML = '<span class="loading"></span> Verifying with backend...';
+
+      const section = document.getElementById('responseSection');
+      section.style.display = 'block';
+
+      const badge = document.getElementById('statusBadge');
+      badge.className = 'status-badge pending';
+      badge.textContent = '⏳ Authenticating...';
+
+      // Send ID token to backend
+      fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          showResponse(res.status, data);
+
+          if (res.ok && data.accessToken) {
+            showTokens(data.accessToken, data.refreshToken);
+          } else {
+            document.getElementById('tokensSection').style.display = 'none';
+          }
+        })
+        .catch((err) => {
+          showError(err);
+          document.getElementById('tokensSection').style.display = 'none';
+        });
+    }
+
+    // ─── Render Google Button ─────────────────────────────────
+
+    function renderGoogleButton() {
+      if (typeof google === 'undefined' || !google.accounts) {
+        // Retry after a short delay if the library hasn't loaded yet
+        setTimeout(renderGoogleButton, 500);
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: '1030932013806-r8o28op04hr8i5t16qktdf5t8u1glr16.apps.googleusercontent.com',
+        callback: handleCredentialResponse,
+        cancel_on_tap_outside: false,
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById('gButton'),
+        {
+          type: 'standard',
+          shape: 'pill',
+          theme: 'outline',
+          text: 'signin_with',
+          size: 'large',
+          logo_alignment: 'left',
+          width: 280,
+        }
+      );
+
+      // Also prompt One Tap for smoother UX
+      // google.accounts.id.prompt();
+    }
+
+    // Start when page loads
+    window.onload = renderGoogleButton;
+  </script>
+</body>
+</html>

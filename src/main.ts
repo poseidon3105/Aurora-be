@@ -1,11 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Serve static files from the public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -27,7 +32,8 @@ async function bootstrap() {
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`Test Google Login:  http://localhost:${port}`);
+  console.log(`API Documentation:  http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

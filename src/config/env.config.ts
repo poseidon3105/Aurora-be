@@ -34,6 +34,9 @@ export const envConfig = () => ({
     storageConnectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || '',
     container: process.env.AZURE_STORAGE_CONTAINER || 'attachments',
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+  },
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '20971520', 10), // 20 MB
   },

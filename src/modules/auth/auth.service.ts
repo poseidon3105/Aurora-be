@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { OAuth2Client } from 'google-auth-library';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
@@ -241,6 +242,85 @@ export class AuthService {
   }
 
   // ───────────────────────────
+  //  3.5 Google Login
+  // ───────────────────────────
+
+  async googleLogin(idToken: string) {
+    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    console.log('GOOGLE_CLIENT_ID:', clientId);
+    if (!clientId) {
+      throw new InternalServerErrorException('Google authentication is not configured');
+    }
+
+    let payload: { email?: string; name?: string; picture?: string };
+
+    try {
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: clientId,
+      });
+      payload = ticket.getPayload() as typeof payload;
+    } catch {
+      throw new UnauthorizedException('Invalid Google ID token');
+    }
+
+    const { email, name, picture } = payload;
+
+    if (!email) {
+      throw new UnauthorizedException('Google account does not have an email address');
+    }
+
+    // Check if email already exists (registered via normal registration)
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'An account with this email already exists. Please log in with your email and password.',
+      );
+    }
+
+    // Auto-register new user with Google account
+    const displayName = name || email.split('@')[0];
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        fullName: displayName,
+        avatarUrl: picture || null,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    // Assign USER system role by default
+    const userRole = await this.prisma.systemRole.findUnique({ where: { name: 'USER' } });
+    if (userRole) {
+      await this.prisma.userSystemRole.create({
+        data: {
+          userId: user.id,
+          roleId: userRole.id,
+        },
+      });
+    }
+
+    // Activity Log: REGISTER
+    await this.activityLogService.create(
+      user.id,
+      'REGISTER',
+      'USER',
+      user.id,
+    ).catch(() => {});
+
+    // Generate tokens
+    const accessToken = await this.generateAccessToken(user.id, user.email);
+    const refreshToken = await this.generateRefreshToken(user.id);
+
+    return { accessToken, refreshToken };
+  }
+
+  // ───────────────────────────
   //  4.1 Login
   // ───────────────────────────
 
@@ -263,6 +343,9 @@ export class AuthService {
     }
 
     // Verify password
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
     const isPasswordValid = await this.comparePassword(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');

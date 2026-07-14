@@ -13,6 +13,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
+import { UsersModule } from './modules/users/users.module';
 import { AzureBlobModule } from './azure-blob/azure-blob.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { AzureBlobModule } from './azure-blob/azure-blob.module';
     TagsModule,
     NotificationsModule,
     ActivityLogModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
