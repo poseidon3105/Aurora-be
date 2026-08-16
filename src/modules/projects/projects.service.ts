@@ -11,6 +11,7 @@ import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { AzureBlobService } from '../../azure-blob/azure-blob.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -29,6 +30,7 @@ export class ProjectsService {
     private readonly mailService: MailService,
     private readonly notificationsService: NotificationsService,
     private readonly activityLogService: ActivityLogService,
+    private readonly azureBlobService: AzureBlobService,
   ) {}
 
   // ───────────────────────────
@@ -231,7 +233,7 @@ export class ProjectsService {
     }
 
     // Fetch full detail with counts
-    return this.prisma.project.findUnique({
+    const projectDetail = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
         owner: {
@@ -247,6 +249,19 @@ export class ProjectsService {
         },
       },
     });
+    if (!projectDetail) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return {
+      ...projectDetail,
+      owner: {
+        ...projectDetail.owner,
+        avatarUrl: await this.azureBlobService.getClientReadUrl(
+          projectDetail.owner.avatarUrl,
+        ),
+      },
+    };
   }
 
   // ───────────────────────────
@@ -663,7 +678,7 @@ export class ProjectsService {
       userId: member.userId,
       fullName: member.user.fullName,
       email: member.user.email,
-      avatarUrl: member.user.avatarUrl,
+      avatarUrl: await this.azureBlobService.getClientReadUrl(member.user.avatarUrl),
       role: member.role.name,
       roleId: member.role.id,
       joinedAt: member.joinedAt,

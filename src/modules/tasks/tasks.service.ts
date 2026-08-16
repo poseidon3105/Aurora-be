@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { AzureBlobService } from '../../azure-blob/azure-blob.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -21,6 +22,7 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly activityLogService: ActivityLogService,
+    private readonly azureBlobService: AzureBlobService,
   ) {}
 
   // ───────────────────────────
@@ -373,6 +375,14 @@ export class TasksService {
 
     return {
       ...task,
+      assignee: task.assignee
+        ? {
+            ...task.assignee,
+            avatarUrl: await this.azureBlobService.getClientReadUrl(
+              task.assignee.avatarUrl,
+            ),
+          }
+        : null,
       checklist: { projectId: task.checklist.projectId },
       tags: task.tags.map((tt) => tt.tag),
     };

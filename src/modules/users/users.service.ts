@@ -12,7 +12,10 @@ import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { AzureBlobService } from '../../azure-blob/azure-blob.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
-import { normalizeFileName } from '../attachments/file-validation.util';
+import {
+  normalizeFileName,
+  validateAvatarFile,
+} from '../attachments/file-validation.util';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { USER_REDIS_KEYS } from './users.constants';
@@ -77,6 +80,12 @@ export class UsersService {
     return bcrypt.compare(password, hash);
   }
 
+  private async getAvatarAccessUrl(
+    avatarUrl: string | null,
+  ): Promise<string | null> {
+    return this.azureBlobService.getClientReadUrl(avatarUrl);
+  }
+
   // ═══════════════════════════════════════════════
   //  1. Get Profile
   // ═══════════════════════════════════════════════
@@ -110,7 +119,7 @@ export class UsersService {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: await this.getAvatarAccessUrl(user.avatarUrl),
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -134,57 +143,36 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+    if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+      throw new ConflictException('Account is inactive or has been deleted');
+    }
 
-    // Track changes for activity log
     let oldValue: string | null = null;
     let newValue: string | null = null;
     const changes: string[] = [];
-
-    // ── Handle avatar file upload ──
     let avatarUrl = user.avatarUrl;
+    let uploadedAvatarUrl: string | null = null;
+
     if (avatar) {
-      // Validate MIME type — only images allowed
-      const allowedImageTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-      ];
-      if (!allowedImageTypes.includes(avatar.mimetype)) {
-        throw new BadRequestException(
-          'Invalid avatar file type. Allowed types: jpeg, png, gif, webp',
-        );
-      }
-
-      // Normalize original filename and generate a UUID blob name
       const normalizedFileName = normalizeFileName(avatar.originalname);
-      const extension =
-        normalizedFileName.split('.').pop()?.toLowerCase() || 'jpg';
-      const blobName = `avatars/${crypto.randomUUID()}.${extension}`;
+      validateAvatarFile(normalizedFileName, avatar.mimetype, avatar.buffer);
 
-      // Upload avatar to Azure Blob Storage
-      avatarUrl = await this.azureBlobService.upload(
+      const extension = normalizedFileName.split('.').pop()!.toLowerCase();
+      const blobName = `avatars/${crypto.randomUUID()}.${extension}`;
+      uploadedAvatarUrl = await this.azureBlobService.upload(
         blobName,
         avatar.buffer,
         avatar.mimetype,
+        'inline',
       );
-
-      // If user had a previous avatar, delete the old blob
-      if (user.avatarUrl) {
-        await this.azureBlobService.delete(user.avatarUrl).catch(() => {
-          // Silently fail — the new avatar is already uploaded
-        });
-      }
-
+      avatarUrl = uploadedAvatarUrl;
       changes.push('avatarUrl: updated');
     }
 
-    // ── Handle fullName change ──
     if (dto.fullName !== undefined && dto.fullName !== user.fullName) {
       changes.push(`fullName: "${user.fullName}" → "${dto.fullName}"`);
     }
 
-    // Prepare old/new values for activity log
     if (changes.length > 0) {
       oldValue = JSON.stringify({
         fullName: user.fullName,
@@ -196,24 +184,36 @@ export class UsersService {
       });
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(dto.fullName !== undefined && { fullName: dto.fullName }),
-        ...(avatarUrl !== user.avatarUrl && { avatarUrl }),
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        avatarUrl: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    let updatedUser;
+    try {
+      updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(dto.fullName !== undefined && { fullName: dto.fullName }),
+          ...(avatarUrl !== user.avatarUrl && { avatarUrl }),
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (error) {
+      if (uploadedAvatarUrl) {
+        await this.azureBlobService.delete(uploadedAvatarUrl).catch(() => {});
+      }
+      throw error;
+    }
 
-    // Activity Log: PROFILE_UPDATED
+    // Delete the old blob only after the database points at the new one.
+    if (uploadedAvatarUrl && user.avatarUrl) {
+      await this.azureBlobService.delete(user.avatarUrl).catch(() => {});
+    }
+
     if (changes.length > 0) {
       await this.activityLogService
         .create(
@@ -231,17 +231,12 @@ export class UsersService {
       id: updatedUser.id,
       fullName: updatedUser.fullName,
       email: updatedUser.email,
-      avatarUrl: updatedUser.avatarUrl,
+      avatarUrl: await this.getAvatarAccessUrl(updatedUser.avatarUrl),
       status: updatedUser.status,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     };
   }
-
-  // ═══════════════════════════════════════════════
-  //  3. Request Password Change (Send OTP)
-  // ═══════════════════════════════════════════════
-
   async requestPasswordChange(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -368,6 +363,9 @@ export class UsersService {
       where: { id: userId },
       data: { status: UserStatus.INACTIVE, deletedAt: new Date() },
     });
+    if (user.avatarUrl) {
+      await this.azureBlobService.delete(user.avatarUrl).catch(() => {});
+    }
     await this.redisService.del(`${USER_REDIS_KEYS.REFRESH}${userId}`).catch(() => {});
 
     await this.activityLogService

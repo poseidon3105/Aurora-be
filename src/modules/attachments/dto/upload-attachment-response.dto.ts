@@ -8,7 +8,7 @@ export class UploadAttachmentResponseDto {
   fileName!: string;
 
   @ApiProperty({
-    description: 'Azure Blob Storage URL',
+    description: 'Short-lived Azure Blob SAS download URL',
     example:
       'https://<storage-account>.blob.core.windows.net/files/550e8400-e29b-41d4-a716-446655440000.pdf',
   })

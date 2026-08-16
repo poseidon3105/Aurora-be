@@ -34,6 +34,7 @@ export const envConfig = () => ({
   azure: {
     storageConnectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || '',
     container: process.env.AZURE_STORAGE_CONTAINER || 'attachments',
+    sasTtlSeconds: parseInt(process.env.AZURE_SAS_TTL_SECONDS || '300', 10),
   },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
