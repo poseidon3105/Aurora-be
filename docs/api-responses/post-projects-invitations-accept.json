@@ -1,0 +1,76 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_acceptInvitation",
+  "tag": "Projects",
+  "summary": "Accept a project invitation",
+  "request": {
+    "method": "POST",
+    "path": "/projects/invitations/accept",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "token": "abc123xyz"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Joined project successfully",
+      "body": {
+        "message": "Joined project successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid or expired invitation",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid or expired invitation",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Email does not match the invitation",
+      "body": {
+        "statusCode": 403,
+        "message": "Email does not match the invitation",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Already a member",
+      "body": {
+        "statusCode": 409,
+        "message": "Already a member",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

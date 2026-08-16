@@ -1,0 +1,62 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TagsController_findAll",
+  "tag": "Tags",
+  "summary": "Get all tags for a project",
+  "request": {
+    "method": "GET",
+    "path": "/projects/{projectId}/tags",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "List of tags returned",
+      "body": [
+        {
+          "id": 401,
+          "name": "Backend",
+          "color": "#2563eb"
+        }
+      ]
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

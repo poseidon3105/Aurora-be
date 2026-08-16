@@ -9,7 +9,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
-    const url = this.configService.get<string>('REDIS_URL', 'redis://localhost:6379');
+    const url = this.configService.get<string>('redis.url', 'redis://localhost:6379');
     this.client = new Redis(url);
   }
 
@@ -44,6 +44,66 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async ttl(key: string): Promise<number> {
     return this.client.ttl(key);
+  }
+
+  async consumeOtpSendAllowance(
+    rateLimitKey: string,
+    cooldownKey: string,
+    maxRequests: number,
+    windowSeconds: number,
+    cooldownSeconds: number,
+  ): Promise<'allowed' | 'cooldown' | 'rate_limited'> {
+    const result = Number(
+      await this.client.eval(
+        `
+          local lastSent = redis.call('GET', KEYS[2])
+          if lastSent and tonumber(ARGV[1]) - tonumber(lastSent) < tonumber(ARGV[2]) then
+            return 0
+          end
+
+          local count = redis.call('INCR', KEYS[1])
+          if count == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[3])
+          end
+
+          if count > tonumber(ARGV[4]) then
+            redis.call('DECR', KEYS[1])
+            return -1
+          end
+
+          redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[3])
+          return 1
+        `,
+        2,
+        rateLimitKey,
+        cooldownKey,
+        Date.now().toString(),
+        cooldownSeconds.toString(),
+        windowSeconds.toString(),
+        maxRequests.toString(),
+      ),
+    );
+
+    if (result === 0) return 'cooldown';
+    if (result === -1) return 'rate_limited';
+    return 'allowed';
+  }
+
+  async incrementWithExpiry(key: string, ttlSeconds: number): Promise<number> {
+    return Number(
+      await this.client.eval(
+        `
+          local count = redis.call('INCR', KEYS[1])
+          if count == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+          end
+          return count
+        `,
+        1,
+        key,
+        ttlSeconds.toString(),
+      ),
+    );
   }
 
   getClient(): Redis {

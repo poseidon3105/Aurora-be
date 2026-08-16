@@ -1,0 +1,60 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "UsersController_getProfile",
+  "tag": "Profile",
+  "summary": "Get current user profile",
+  "request": {
+    "method": "GET",
+    "path": "/profile",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Profile retrieved successfully",
+      "body": {
+        "id": 1,
+        "fullName": "Project Manager",
+        "email": "manager@example.test",
+        "avatarUrl": null,
+        "status": "ACTIVE",
+        "createdAt": "2030-01-15T09:00:00.000Z",
+        "updatedAt": "2030-01-15T09:00:00.000Z",
+        "roles": [
+          "USER"
+        ]
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "User not found",
+      "body": {
+        "statusCode": 404,
+        "message": "User not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

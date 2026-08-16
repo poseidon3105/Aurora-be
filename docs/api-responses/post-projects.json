@@ -1,0 +1,68 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_create",
+  "tag": "Projects",
+  "summary": "Create a new project",
+  "request": {
+    "method": "POST",
+    "path": "/projects",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "name": "My Project",
+        "description": "A description of the project",
+        "startDate": "2025-01-01",
+        "endDate": "2025-12-31"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 201,
+      "description": "Project created successfully",
+      "body": {
+        "id": 101,
+        "name": "Website Redesign",
+        "description": "Refresh the public website.",
+        "ownerId": 1,
+        "status": "ACTIVE",
+        "startDate": "2030-01-15T00:00:00.000Z",
+        "endDate": "2030-03-31T00:00:00.000Z",
+        "createdAt": "2030-01-15T09:00:00.000Z",
+        "updatedAt": "2030-01-15T09:00:00.000Z",
+        "deletedAt": null
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input or end date before start date",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input or end date before start date",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

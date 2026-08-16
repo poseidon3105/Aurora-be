@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class VerifyResetOtpDto {
@@ -11,5 +11,6 @@ export class VerifyResetOtpDto {
   @IsString()
   @IsNotEmpty()
   @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
+  @Matches(/^\d{6}$/, { message: 'OTP must contain only digits' })
   otp!: string;
 }

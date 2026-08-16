@@ -1,0 +1,94 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TagsController_update",
+  "tag": "Tags",
+  "summary": "Update a tag (manager, admin, or super admin only)",
+  "request": {
+    "method": "PUT",
+    "path": "/tags/{tagId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "tagId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "name": "API",
+        "color": "#3498db"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Tag updated successfully",
+      "body": {
+        "message": "Tag updated successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - insufficient permissions",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - insufficient permissions",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Tag not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Tag not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Tag name already exists in this project",
+      "body": {
+        "statusCode": 409,
+        "message": "Tag name already exists in this project",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

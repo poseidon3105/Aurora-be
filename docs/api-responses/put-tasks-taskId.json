@@ -1,0 +1,95 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TasksController_update",
+  "tag": "Tasks",
+  "summary": "Update a task (manager or assignee only)",
+  "request": {
+    "method": "PUT",
+    "path": "/tasks/{taskId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "title": "<string>",
+        "description": "<string>",
+        "assigneeId": 1,
+        "dueDate": "2030-01-15"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Task updated successfully",
+      "body": {
+        "id": 301,
+        "checklistId": 201,
+        "title": "Implement Google login",
+        "description": "Verify Google ID token.",
+        "assigneeId": 2,
+        "statusId": 2,
+        "dueDate": "2030-02-01T00:00:00.000Z",
+        "orderIndex": 0,
+        "completedAt": null,
+        "deletedAt": null
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input or deleted task",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input or deleted task",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Task not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Task not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

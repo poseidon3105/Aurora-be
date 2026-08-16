@@ -1,0 +1,102 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TasksController_findOne",
+  "tag": "Tasks",
+  "summary": "Get task details with assignee, status, tags, counts",
+  "request": {
+    "method": "GET",
+    "path": "/tasks/{taskId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Task details returned",
+      "body": {
+        "id": 301,
+        "checklistId": 201,
+        "title": "Implement Google login",
+        "description": "Verify Google ID token.",
+        "assigneeId": 2,
+        "statusId": 2,
+        "dueDate": "2030-02-01T00:00:00.000Z",
+        "orderIndex": 0,
+        "completedAt": null,
+        "deletedAt": null,
+        "checklist": {
+          "projectId": 101
+        },
+        "assignee": {
+          "id": 2,
+          "fullName": "Project Member",
+          "email": "member@example.test",
+          "avatarUrl": null
+        },
+        "status": {
+          "id": 2,
+          "name": "IN_PROGRESS",
+          "color": "#f59e0b"
+        },
+        "tags": [
+          {
+            "id": 401,
+            "name": "Backend",
+            "color": "#2563eb"
+          }
+        ],
+        "_count": {
+          "comments": 1,
+          "attachments": 1
+        }
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Task not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Task not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

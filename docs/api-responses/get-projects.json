@@ -1,0 +1,62 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_findAll",
+  "tag": "Projects",
+  "summary": "Get all projects owned by or shared with the user",
+  "request": {
+    "method": "GET",
+    "path": "/projects",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "List of projects returned",
+      "body": [
+        {
+          "id": 101,
+          "name": "Website Redesign",
+          "description": "Refresh the public website.",
+          "ownerId": 1,
+          "status": "ACTIVE",
+          "startDate": "2030-01-15T00:00:00.000Z",
+          "endDate": "2030-03-31T00:00:00.000Z",
+          "createdAt": "2030-01-15T09:00:00.000Z",
+          "updatedAt": "2030-01-15T09:00:00.000Z",
+          "deletedAt": null,
+          "owner": {
+            "id": 1,
+            "fullName": "Project Manager",
+            "email": "manager@example.test",
+            "avatarUrl": null
+          },
+          "_count": {
+            "members": 2,
+            "checklists": 1
+          }
+        }
+      ]
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

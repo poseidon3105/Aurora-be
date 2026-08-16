@@ -6,8 +6,8 @@ export const envConfig = () => ({
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET || 'default-access-secret-change-me',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-change-me',
+    accessSecret: process.env.JWT_ACCESS_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
@@ -23,6 +23,7 @@ export const envConfig = () => ({
     resendCooldown: parseInt(process.env.OTP_RESEND_COOLDOWN || '60', 10),
     maxRequests: parseInt(process.env.OTP_MAX_REQUESTS || '5', 10),
     window: parseInt(process.env.OTP_WINDOW || '3600', 10),
+    maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS || '10', 10),
   },
   refresh: {
     ttl: parseInt(process.env.REFRESH_TTL || '604800', 10),

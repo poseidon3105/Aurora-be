@@ -7,6 +7,7 @@ import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { OAuth2Client } from 'google-auth-library';
+import { randomInt } from 'crypto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
@@ -34,7 +35,7 @@ export class AuthService {
   // ───────────────────────────
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -45,12 +46,42 @@ export class AuthService {
     return bcrypt.compare(password, hash);
   }
 
+  private getOtpConfig() {
+    return {
+      ttl: this.configService.get<number>('otp.ttl', 300),
+      resendCooldown: this.configService.get<number>('otp.resendCooldown', 60),
+      maxRequests: this.configService.get<number>('otp.maxRequests', 5),
+      window: this.configService.get<number>('otp.window', 3600),
+      maxAttempts: this.configService.get<number>('otp.maxAttempts', 10),
+    };
+  }
+
+  private async consumeOtpAttempt(
+    email: string,
+    type: 'verify' | 'reset',
+    otpKey: string,
+  ): Promise<string> {
+    const { ttl, maxAttempts } = this.getOtpConfig();
+    const attemptKey = `${REDIS_KEYS.OTP_ATTEMPTS}${email}:${type}`;
+    const attempts = await this.redisService.incrementWithExpiry(attemptKey, ttl);
+
+    if (attempts > maxAttempts) {
+      await this.redisService.del(otpKey);
+      throw new HttpException(
+        'Too many invalid OTP attempts. Please request a new OTP.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return attemptKey;
+  }
+
   private async generateAccessToken(userId: number, email: string): Promise<string> {
     return this.jwtService.signAsync(
       { sub: userId, email },
       {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+        secret: this.configService.getOrThrow<string>('jwt.accessSecret'),
+        expiresIn: this.configService.get<string>('jwt.accessExpiresIn', '15m'),
       },
     );
   }
@@ -59,13 +90,13 @@ export class AuthService {
     const refreshToken = await this.jwtService.signAsync(
       { sub: userId, type: 'refresh' },
       {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+        secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
+        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn', '7d'),
       },
     );
 
     // Store in Redis
-    const refreshTtl = Number(this.configService.get<number>('REFRESH_TTL', 604800));
+    const refreshTtl = this.configService.get<number>('refresh.ttl', 604800);
     await this.redisService.set(
       `${REDIS_KEYS.REFRESH}${userId}`,
       refreshToken,
@@ -85,7 +116,10 @@ export class AuthService {
     // Check if existing active user
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
 
-    if (existingUser && existingUser.status !== UserStatus.PENDING_VERIFICATION) {
+    if (
+      existingUser &&
+      (existingUser.deletedAt || existingUser.status !== UserStatus.PENDING_VERIFICATION)
+    ) {
       throw new ConflictException('Email already exists');
     }
 
@@ -118,11 +152,8 @@ export class AuthService {
       });
     }
 
-    // Generate and send OTP
-    const otp = this.generateOtp();
-    const otpTtl = Number(this.configService.get<number>('OTP_TTL', 300));
-    await this.redisService.set(`${REDIS_KEYS.OTP_VERIFY}${email}`, otp, otpTtl);
-    await this.mailService.sendVerificationOtp(email, otp);
+    // Send the initial OTP through the same atomic rate-limit path as resends.
+    await this.handleOtpResend(email, 'verify');
 
     // Activity Log: REGISTER
     await this.activityLogService.create(
@@ -141,32 +172,40 @@ export class AuthService {
 
   async verifyEmail(dto: VerifyEmailDto) {
     const { email, otp } = dto;
-
-    // Get OTP from Redis
-    const storedOtp = await this.redisService.get(`${REDIS_KEYS.OTP_VERIFY}${email}`);
+    const otpKey = `${REDIS_KEYS.OTP_VERIFY}${email}`;
+    const storedOtp = await this.redisService.get(otpKey);
 
     if (!storedOtp) {
       throw new BadRequestException('OTP has expired or is invalid');
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { deletedAt: true, status: true },
+    });
+    if (
+      !user ||
+      user.deletedAt ||
+      user.status !== UserStatus.PENDING_VERIFICATION
+    ) {
+      throw new BadRequestException('OTP has expired or is invalid');
+    }
+
+    const attemptKey = await this.consumeOtpAttempt(email, 'verify', otpKey);
     if (storedOtp !== otp) {
       throw new BadRequestException('Invalid OTP');
     }
 
-    // Update user status
-    const user = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: { email },
-      data: {
-        status: UserStatus.ACTIVE,
-      },
+      data: { status: UserStatus.ACTIVE },
     });
 
-    // Remove OTP from Redis
-    await this.redisService.del(`${REDIS_KEYS.OTP_VERIFY}${email}`);
+    await this.redisService.del(otpKey);
+    await this.redisService.del(attemptKey);
 
     return { message: 'Email verified successfully' };
   }
-
   // ───────────────────────────
   //  3.3 Resend OTP
   // ───────────────────────────
@@ -174,64 +213,46 @@ export class AuthService {
   async resendOtp(dto: ResendOtpDto) {
     const { email } = dto;
 
-    // Only applicable to unverified accounts
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('Account not found');
-    }
-    if (user.status !== UserStatus.PENDING_VERIFICATION) {
-      throw new BadRequestException('Account is already verified');
+    if (
+      !user ||
+      user.deletedAt ||
+      user.status !== UserStatus.PENDING_VERIFICATION
+    ) {
+      throw new BadRequestException('Account is unavailable for verification');
     }
 
     return this.handleOtpResend(email, 'verify');
   }
-
   private async handleOtpResend(email: string, type: 'verify' | 'reset') {
-    const otpTtl = Number(this.configService.get<number>('OTP_TTL', 300));
-    const otpResendCooldown = Number(this.configService.get<number>('OTP_RESEND_COOLDOWN', 60));
-    const otpMaxRequests = Number(this.configService.get<number>('OTP_MAX_REQUESTS', 5));
-    const otpWindow = Number(this.configService.get<number>('OTP_WINDOW', 3600));
-
-    // Check rate limiting
+    const { ttl, resendCooldown, maxRequests, window } = this.getOtpConfig();
     const rateLimitKey = `${REDIS_KEYS.OTP_RATE}${email}:${type}`;
-    const currentCount = await this.redisService.get(rateLimitKey);
-    const count = currentCount ? parseInt(currentCount, 10) : 0;
+    const allowance = await this.redisService.consumeOtpSendAllowance(
+      rateLimitKey,
+      `${rateLimitKey}:last_sent`,
+      maxRequests,
+      window,
+      resendCooldown,
+    );
 
-    if (count >= otpMaxRequests) {
-      throw new HttpException('Too many OTP requests. Please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+    if (allowance === 'cooldown') {
+      throw new HttpException(
+        'Please wait before requesting a new OTP',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (allowance === 'rate_limited') {
+      throw new HttpException(
+        'Too many OTP requests. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
-    // Check cooldown
-    const lastSentKey = `${rateLimitKey}:last_sent`;
-    const lastSent = await this.redisService.get(lastSentKey);
-    if (lastSent) {
-      const elapsed = Date.now() - parseInt(lastSent, 10);
-      if (elapsed < otpResendCooldown * 1000) {
-        throw new HttpException('Please wait before requesting a new OTP', HttpStatus.TOO_MANY_REQUESTS);
-      }
-    }
-
-    // Generate and store OTP
     const otp = this.generateOtp();
     const prefix = type === 'verify' ? REDIS_KEYS.OTP_VERIFY : REDIS_KEYS.OTP_RESET;
-    await this.redisService.set(`${prefix}${email}`, otp, otpTtl);
+    await this.redisService.set(`${prefix}${email}`, otp, ttl);
+    await this.redisService.del(`${REDIS_KEYS.OTP_ATTEMPTS}${email}:${type}`);
 
-    // Update rate limit
-    if (!currentCount) {
-      await this.redisService.set(rateLimitKey, '1', otpWindow);
-    } else {
-      await this.redisService.incr(rateLimitKey);
-      // Ensure TTL is set
-      const ttl = await this.redisService.ttl(rateLimitKey);
-      if (ttl < 0) {
-        await this.redisService.expire(rateLimitKey, otpWindow);
-      }
-    }
-
-    // Record last sent timestamp
-    await this.redisService.set(lastSentKey, Date.now().toString(), otpWindow);
-
-    // Send email
     if (type === 'verify') {
       await this.mailService.sendVerificationOtp(email, otp);
     } else {
@@ -240,19 +261,22 @@ export class AuthService {
 
     return { message: 'OTP sent successfully' };
   }
-
   // ───────────────────────────
   //  3.5 Google Login
   // ───────────────────────────
 
   async googleLogin(idToken: string) {
-    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    console.log('GOOGLE_CLIENT_ID:', clientId);
+    const clientId = this.configService.get<string>('google.clientId');
     if (!clientId) {
       throw new InternalServerErrorException('Google authentication is not configured');
     }
 
-    let payload: { email?: string; name?: string; picture?: string };
+    let payload: {
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+      picture?: string;
+    };
 
     try {
       const client = new OAuth2Client(clientId);
@@ -266,98 +290,84 @@ export class AuthService {
     }
 
     const { email, name, picture } = payload;
-
-    if (!email) {
-      throw new UnauthorizedException('Google account does not have an email address');
+    if (!email || payload.email_verified !== true) {
+      throw new UnauthorizedException('Google account email is not verified');
     }
 
-    // Check if email already exists (registered via normal registration)
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException(
-        'An account with this email already exists. Please log in with your email and password.',
-      );
-    }
-
-    // Auto-register new user with Google account
-    const displayName = name || email.split('@')[0];
-
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        fullName: displayName,
-        avatarUrl: picture || null,
-        status: UserStatus.ACTIVE,
-      },
-    });
-
-    // Assign USER system role by default
-    const userRole = await this.prisma.systemRole.findUnique({ where: { name: 'USER' } });
-    if (userRole) {
-      await this.prisma.userSystemRole.create({
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    if (user) {
+      if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('Account is inactive or has been deleted');
+      }
+      if (user.passwordHash) {
+        throw new ConflictException(
+          'An account with this email already exists. Please log in with your email and password.',
+        );
+      }
+    } else {
+      const displayName = name || email.split('@')[0];
+      user = await this.prisma.user.create({
         data: {
-          userId: user.id,
-          roleId: userRole.id,
+          email,
+          fullName: displayName,
+          avatarUrl: picture || null,
+          status: UserStatus.ACTIVE,
         },
       });
+
+      const userRole = await this.prisma.systemRole.findUnique({
+        where: { name: 'USER' },
+      });
+      if (userRole) {
+        await this.prisma.userSystemRole.create({
+          data: {
+            userId: user.id,
+            roleId: userRole.id,
+          },
+        });
+      }
+
+      await this.activityLogService
+        .create(user.id, 'REGISTER', 'USER', user.id)
+        .catch(() => {});
     }
 
-    // Activity Log: REGISTER
-    await this.activityLogService.create(
-      user.id,
-      'REGISTER',
-      'USER',
-      user.id,
-    ).catch(() => {});
-
-    // Generate tokens
     const accessToken = await this.generateAccessToken(user.id, user.email);
     const refreshToken = await this.generateRefreshToken(user.id);
 
     return { accessToken, refreshToken };
   }
-
   // ───────────────────────────
   //  4.1 Login
   // ───────────────────────────
 
   async login(dto: LoginDto) {
     const { email, password } = dto;
-
-    // Find user
     const user = await this.prisma.user.findUnique({ where: { email } });
+
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
-
-    // Check status
+    if (user.deletedAt || user.status === UserStatus.INACTIVE) {
+      throw new UnauthorizedException('Account is inactive or has been deleted');
+    }
     if (user.status === UserStatus.PENDING_VERIFICATION) {
       throw new UnauthorizedException('Please verify your email before logging in');
     }
-
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('Account is inactive');
-    }
-
-    // Verify password
     if (!user.passwordHash) {
       throw new UnauthorizedException('Invalid email or password');
     }
+
     const isPasswordValid = await this.comparePassword(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // Generate tokens
     const accessToken = await this.generateAccessToken(user.id, user.email);
     const refreshToken = await this.generateRefreshToken(user.id);
 
     return { accessToken, refreshToken };
   }
-
   // ───────────────────────────
   //  5.1 Refresh Access Token
   // ───────────────────────────
@@ -366,32 +376,36 @@ export class AuthService {
     const { refreshToken } = dto;
 
     try {
-      // Verify refresh token
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
       });
+      const userId = Number(payload.sub);
 
-      const userId = payload.sub;
+      if (
+        payload.type !== 'refresh' ||
+        !Number.isSafeInteger(userId) ||
+        userId <= 0
+      ) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
-      // Check if token exists in Redis
-      const storedToken = await this.redisService.get(`${REDIS_KEYS.REFRESH}${userId}`);
+      const storedToken = await this.redisService.get(
+        `${REDIS_KEYS.REFRESH}${userId}`,
+      );
       if (!storedToken || storedToken !== refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // Get user info for new access token
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, email: true },
+        select: { id: true, email: true, status: true, deletedAt: true },
       });
-
-      if (!user) {
-        throw new UnauthorizedException('User not found');
+      if (!user || user.deletedAt || user.status !== UserStatus.ACTIVE) {
+        await this.redisService.del(`${REDIS_KEYS.REFRESH}${userId}`);
+        throw new UnauthorizedException('Account is inactive or has been deleted');
       }
 
-      // Generate new access token
       const accessToken = await this.generateAccessToken(user.id, user.email);
-
       return { accessToken };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -400,7 +414,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
-
   // ───────────────────────────
   //  6.1 Logout
   // ───────────────────────────
@@ -417,67 +430,89 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordDto) {
     const { email } = dto;
-
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      // Don't reveal if email exists
-      return { message: 'If the email exists, a password reset OTP has been sent' };
+    const message = 'If the email exists, a password reset OTP has been sent';
+
+    if (
+      !user ||
+      user.deletedAt ||
+      user.status !== UserStatus.ACTIVE ||
+      !user.passwordHash
+    ) {
+      return { message };
     }
 
-    const result = await this.handleOtpResend(email, 'reset');
+    try {
+      await this.handleOtpResend(email, 'reset');
+    } catch (error) {
+      if (
+        error instanceof HttpException &&
+        error.getStatus() === HttpStatus.TOO_MANY_REQUESTS
+      ) {
+        return { message };
+      }
+      throw error;
+    }
 
-    return result;
+    return { message };
   }
-
   // ───────────────────────────
   //  7.2 Verify Reset OTP
   // ───────────────────────────
 
   async verifyResetOtp(dto: VerifyResetOtpDto) {
     const { email, otp } = dto;
-
-    const storedOtp = await this.redisService.get(`${REDIS_KEYS.OTP_RESET}${email}`);
+    const otpKey = `${REDIS_KEYS.OTP_RESET}${email}`;
+    const storedOtp = await this.redisService.get(otpKey);
 
     if (!storedOtp) {
       throw new BadRequestException('OTP has expired or is invalid');
     }
 
+    const attemptKey = await this.consumeOtpAttempt(email, 'reset', otpKey);
     if (storedOtp !== otp) {
       throw new BadRequestException('Invalid OTP');
     }
 
-    // Mark OTP as verified by keeping a flag
-    const otpTtl = Number(this.configService.get<number>('OTP_TTL', 300));
-    await this.redisService.set(`${REDIS_KEYS.OTP_RESET}${email}:verified`, 'true', otpTtl);
+    const otpTtl = this.getOtpConfig().ttl;
+    await this.redisService.set(`${otpKey}:verified`, 'true', otpTtl);
+    await this.redisService.del(otpKey);
+    await this.redisService.del(attemptKey);
 
     return { message: 'OTP verified. You can now reset your password.' };
   }
-
   // ───────────────────────────
   //  7.3 Reset Password
   // ───────────────────────────
 
   async resetPassword(dto: ResetPasswordDto) {
     const { email, newPassword } = dto;
+    const verifiedKey = `${REDIS_KEYS.OTP_RESET}${email}:verified`;
+    const isVerified = await this.redisService.get(verifiedKey);
 
-    // Check if OTP was verified
-    const isVerified = await this.redisService.get(`${REDIS_KEYS.OTP_RESET}${email}:verified`);
     if (!isVerified) {
       throw new BadRequestException('Please verify the OTP before resetting your password');
     }
 
-    // Hash new password
-    const passwordHash = await this.hashPassword(newPassword);
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (
+      !user ||
+      user.deletedAt ||
+      user.status !== UserStatus.ACTIVE ||
+      !user.passwordHash
+    ) {
+      throw new BadRequestException('Password reset is not available for this account');
+    }
 
-    // Update user password
-    const user = await this.prisma.user.update({
-      where: { email },
+    const passwordHash = await this.hashPassword(newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
       data: { passwordHash },
     });
 
-    // Clean up Redis
     await this.redisService.del(`${REDIS_KEYS.OTP_RESET}${email}`);
-    await this.redisService.del(`${REDIS_KEYS.OTP_RESET}${email}:verified`);
+    await this.redisService.del(verifiedKey);
+    await this.redisService.del(`${REDIS_KEYS.OTP_ATTEMPTS}${email}:reset`);
     await this.redisService.del(`${REDIS_KEYS.REFRESH}${user.id}`);
 
     return { message: 'Password reset successfully. Please log in with your new password.' };

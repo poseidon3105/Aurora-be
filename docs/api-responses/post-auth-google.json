@@ -1,0 +1,45 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_googleLogin",
+  "tag": "Authentication",
+  "summary": "Login or register with Google ID token",
+  "request": {
+    "method": "POST",
+    "path": "/auth/google",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "idToken": "<google_id_token_from_google_identity_services>"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Returns access and refresh tokens",
+      "body": {
+        "accessToken": "<jwt_access_token>",
+        "refreshToken": "<jwt_refresh_token>"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Invalid Google ID token",
+      "body": {
+        "statusCode": 401,
+        "message": "Invalid Google ID token",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

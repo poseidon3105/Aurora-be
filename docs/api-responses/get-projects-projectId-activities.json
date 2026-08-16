@@ -1,0 +1,87 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ActivityLogController_findProjectActivities",
+  "tag": "Activity Logs",
+  "summary": "Get activity logs related to a project",
+  "request": {
+    "method": "GET",
+    "path": "/projects/{projectId}/activities",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "example": 1
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Paginated project activity logs returned",
+      "body": {
+        "data": [
+          {
+            "id": 801,
+            "userId": 1,
+            "action": "PROJECT_CREATED",
+            "entityType": "PROJECT",
+            "entityId": 101,
+            "oldValue": null,
+            "newValue": "{\"name\":\"Website Redesign\"}",
+            "createdAt": "2030-01-15T09:00:00.000Z"
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "page": 1,
+          "limit": 20,
+          "totalPages": 1
+        }
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

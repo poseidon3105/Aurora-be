@@ -1,0 +1,77 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TasksController_reorder",
+  "tag": "Tasks",
+  "summary": "Reorder tasks within a checklist",
+  "request": {
+    "method": "PATCH",
+    "path": "/tasks/reorder",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "taskId": 1,
+        "newPosition": 1
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Tasks reordered successfully",
+      "body": {
+        "message": "Tasks reordered successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid position",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid position",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Task not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Task not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

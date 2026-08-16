@@ -1,0 +1,84 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "CommentsController_update",
+  "tag": "Task Comments",
+  "summary": "Update a comment (owner only)",
+  "request": {
+    "method": "PUT",
+    "path": "/comments/{commentId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "commentId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "content": "The Login API has been completed and deployed."
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Comment updated successfully",
+      "body": {
+        "id": 601,
+        "content": "Google login implementation is ready."
+      }
+    },
+    {
+      "status": 400,
+      "description": "Cannot update a deleted comment",
+      "body": {
+        "statusCode": 400,
+        "message": "Cannot update a deleted comment",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not the comment owner",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not the comment owner",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Comment not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Comment not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

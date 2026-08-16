@@ -1,0 +1,44 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_resendOtp",
+  "tag": "Authentication",
+  "summary": "Resend email verification OTP",
+  "request": {
+    "method": "POST",
+    "path": "/auth/resend-otp",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "email": "user@example.com"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "OTP sent successfully",
+      "body": {
+        "message": "OTP sent successfully"
+      }
+    },
+    {
+      "status": 429,
+      "description": "Too many OTP requests",
+      "body": {
+        "statusCode": 429,
+        "message": "Too many OTP requests",
+        "error": "Too Many Requests"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ChecklistsController_changeStatus",
+  "tag": "Checklists",
+  "summary": "Change checklist status (OPEN ? IN_PROGRESS ? DONE)",
+  "request": {
+    "method": "PATCH",
+    "path": "/checklists/{checklistId}/status",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "checklistId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "status": "OPEN"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Status changed successfully",
+      "body": {
+        "id": 201,
+        "projectId": 101,
+        "title": "Backend delivery",
+        "description": "Authentication and API work.",
+        "createdById": 1,
+        "dueDate": "2030-02-15T00:00:00.000Z",
+        "status": "IN_PROGRESS",
+        "deletedAt": null
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid status transition",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid status transition",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Checklist not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Checklist not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

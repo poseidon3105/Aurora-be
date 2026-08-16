@@ -1,0 +1,61 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "UsersController_deleteAccount",
+  "tag": "Profile",
+  "summary": "Soft delete own account",
+  "request": {
+    "method": "DELETE",
+    "path": "/profile",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Account deleted successfully",
+      "body": {
+        "message": "Account deleted successfully"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "User not found",
+      "body": {
+        "statusCode": 404,
+        "message": "User not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Account already deleted",
+      "body": {
+        "statusCode": 409,
+        "message": "Account already deleted",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

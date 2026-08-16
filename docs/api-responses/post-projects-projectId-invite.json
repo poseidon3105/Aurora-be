@@ -1,0 +1,94 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_inviteMember",
+  "tag": "Projects",
+  "summary": "Invite a user to join the project (manager only)",
+  "request": {
+    "method": "POST",
+    "path": "/projects/{projectId}/invite",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "email": "user@gmail.com",
+        "roleId": 2
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Invitation sent successfully",
+      "body": {
+        "message": "Invitation sent successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input or business rule violation",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input or business rule violation",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project manager",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project manager",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Project not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Project not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "User is already a member",
+      "body": {
+        "statusCode": 409,
+        "message": "User is already a member",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_remove",
+  "tag": "Projects",
+  "summary": "Soft delete a project (manager, super admin, or admin)",
+  "request": {
+    "method": "DELETE",
+    "path": "/projects/{projectId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Project deleted successfully",
+      "body": {
+        "message": "Project deleted successfully"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a manager, super admin, or admin",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a manager, super admin, or admin",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Project not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Project not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

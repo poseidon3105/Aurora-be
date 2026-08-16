@@ -1,0 +1,77 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_getMembers",
+  "tag": "Projects",
+  "summary": "Get all members of a project",
+  "request": {
+    "method": "GET",
+    "path": "/projects/{projectId}/members",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "List of project members",
+      "body": [
+        {
+          "id": 501,
+          "userId": 2,
+          "fullName": "Project Member",
+          "email": "member@example.test",
+          "avatarUrl": null,
+          "role": "PROJECT_MEMBER",
+          "roleId": 2,
+          "joinedAt": "2030-01-15T09:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Project not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Project not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

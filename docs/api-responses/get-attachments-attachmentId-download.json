@@ -1,0 +1,69 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AttachmentsController_download",
+  "tag": "Task Attachments",
+  "summary": "Get download URL for an attachment",
+  "request": {
+    "method": "GET",
+    "path": "/attachments/{attachmentId}/download",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "attachmentId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Download URL returned",
+      "body": {
+        "fileUrl": "https://<storage-account>.blob.core.windows.net/files/<blob-name>",
+        "fileName": "design.pdf"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Attachment not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Attachment not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

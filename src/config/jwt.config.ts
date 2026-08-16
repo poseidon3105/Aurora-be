@@ -2,15 +2,15 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModuleOptions } from '@nestjs/jwt';
 
 export const getJwtAccessConfig = (configService: ConfigService): JwtModuleOptions => ({
-  secret: configService.get<string>('JWT_ACCESS_SECRET'),
+  secret: configService.getOrThrow<string>('jwt.accessSecret'),
   signOptions: {
-    expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+    expiresIn: configService.get<string>('jwt.accessExpiresIn', '15m'),
   },
 });
 
 export const getJwtRefreshConfig = (configService: ConfigService): JwtModuleOptions => ({
-  secret: configService.get<string>('JWT_REFRESH_SECRET'),
+  secret: configService.getOrThrow<string>('jwt.refreshSecret'),
   signOptions: {
-    expiresIn: configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+    expiresIn: configService.get<string>('jwt.refreshExpiresIn', '7d'),
   },
 });

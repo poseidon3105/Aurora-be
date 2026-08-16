@@ -1,0 +1,93 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "TagsController_assignToTask",
+  "tag": "Tags",
+  "summary": "Assign a tag to a task",
+  "request": {
+    "method": "POST",
+    "path": "/tasks/{taskId}/tags",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "tagId": 2
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 201,
+      "description": "Tag assigned successfully",
+      "body": {
+        "message": "Tag assigned successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input or tag does not belong to project",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input or tag does not belong to project",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Task or tag not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Task or tag not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Tag already assigned to this task",
+      "body": {
+        "statusCode": 409,
+        "message": "Tag already assigned to this task",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

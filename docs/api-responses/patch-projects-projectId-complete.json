@@ -1,0 +1,87 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_complete",
+  "tag": "Projects",
+  "summary": "Complete a project (manager only)",
+  "request": {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/complete",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Project completed successfully",
+      "body": {
+        "id": 101,
+        "name": "Website Redesign",
+        "description": "Refresh the public website.",
+        "ownerId": 1,
+        "status": "ACTIVE",
+        "startDate": "2030-01-15T00:00:00.000Z",
+        "endDate": "2030-03-31T00:00:00.000Z",
+        "createdAt": "2030-01-15T09:00:00.000Z",
+        "updatedAt": "2030-01-15T09:00:00.000Z",
+        "deletedAt": null
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project manager",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project manager",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Project not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Project not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Project is not active",
+      "body": {
+        "statusCode": 409,
+        "message": "Project is not active",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "CommentsController_create",
+  "tag": "Task Comments",
+  "summary": "Add a comment to a task (supports @username mentions)",
+  "request": {
+    "method": "POST",
+    "path": "/tasks/{taskId}/comments",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "content": "The Login API has been completed."
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 201,
+      "description": "Comment created successfully",
+      "body": {
+        "id": 601,
+        "content": "Google login implementation is ready."
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid input or task is deleted",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid input or task is deleted",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project member",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project member",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Task not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Task not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

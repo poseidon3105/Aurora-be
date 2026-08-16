@@ -1,0 +1,47 @@
+{
+  "purpose": "Prerequisites for executing all 67 APIs against an isolated test environment.",
+  "environment": {
+    "application": {
+      "baseUrl": "http://localhost:3000",
+      "command": "npm run start:dev"
+    },
+    "mysql": [
+      "DATABASE_URL points to an isolated test database",
+      "Prisma schema is synchronized, including users.password_hash nullable for Google users"
+    ],
+    "redis": [
+      "Reachable Redis instance for OTP state, rate limits and refresh-token revocation"
+    ],
+    "smtp": [
+      "Working SMTP credentials and a mailbox/inbox accessible to the tester for registration, password-reset, invitation and mention flows"
+    ],
+    "azureBlob": [
+      "Valid Azure Storage configuration and a writable blob container for task attachments and avatars"
+    ],
+    "google": [
+      "GOOGLE_CLIENT_ID configured",
+      "Google OAuth client allows http://localhost:3000 as an authorized JavaScript origin",
+      "A fresh Google ID token from an account not yet registered, or adjusted existing-Google-user login logic"
+    ]
+  },
+  "requiredSeedData": [
+    "System role USER.",
+    "Project roles PROJECT_MANAGER, PROJECT_MEMBER, ADMIN and SUPER_ADMIN.",
+    "Task statuses OPEN, IN_PROGRESS, REVIEW and DONE with stable IDs expected by ChangeTaskStatusDto.",
+    "At least three users: project manager/owner, active project member and non-member.",
+    "An ACTIVE project, checklist and tasks covering pending and DONE states.",
+    "A second project/member relationship for 403 authorization checks.",
+    "A tag, comment, notification, attachment and invitation token for dependent CRUD/download/acceptance tests."
+  ],
+  "credentialsAndInputs": [
+    "Bearer access tokens for each seeded user.",
+    "Known passwords for local-auth users.",
+    "OTP values obtained from the configured test inbox.",
+    "A safe sample file below 20 MB for attachments and a JPEG/PNG/GIF/WebP image below 5 MB for avatar tests."
+  ],
+  "testSafety": [
+    "Use a disposable database, Redis namespace, mailbox and Azure container because tests create, update, soft-delete and hard-delete records.",
+    "Do not put real JWTs, Google ID tokens, passwords, SMTP credentials or Azure connection strings into response fixtures or version control.",
+    "Run destructive endpoint cases last, or reseed the environment before each suite."
+  ]
+}

@@ -18,6 +18,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { USER_REDIS_KEYS } from './users.constants';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { randomInt } from 'crypto';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -35,7 +37,33 @@ export class UsersService {
   // ───────────────────────────
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
+  }
+
+  private getOtpConfig() {
+    return {
+      ttl: this.configService.get<number>('otp.ttl', 300),
+      resendCooldown: this.configService.get<number>('otp.resendCooldown', 60),
+      maxRequests: this.configService.get<number>('otp.maxRequests', 5),
+      window: this.configService.get<number>('otp.window', 3600),
+      maxAttempts: this.configService.get<number>('otp.maxAttempts', 10),
+    };
+  }
+
+  private async consumeOtpAttempt(email: string, otpKey: string): Promise<string> {
+    const { ttl, maxAttempts } = this.getOtpConfig();
+    const attemptKey = `${USER_REDIS_KEYS.OTP_ATTEMPTS}${email}:change-password`;
+    const attempts = await this.redisService.incrementWithExpiry(attemptKey, ttl);
+
+    if (attempts > maxAttempts) {
+      await this.redisService.del(otpKey);
+      throw new HttpException(
+        'Too many invalid OTP attempts. Please request a new OTP.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return attemptKey;
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -222,90 +250,52 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    if (user.deletedAt) {
-      throw new ConflictException('Account has been deleted');
+    if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+      throw new ConflictException('Account is inactive or has been deleted');
     }
-
     if (!user.passwordHash) {
       throw new BadRequestException(
         'Cannot change password for Google-authenticated accounts',
       );
     }
 
+    const { ttl, resendCooldown, maxRequests, window } = this.getOtpConfig();
     const email = user.email;
-
-    // Reuse OTP rate limiting from shared constants pattern
-    const otpTtl = Number(
-      this.configService.get<number>('OTP_TTL', 300),
-    );
-    const otpResendCooldown = Number(
-      this.configService.get<number>('OTP_RESEND_COOLDOWN', 60),
-    );
-    const otpMaxRequests = Number(
-      this.configService.get<number>('OTP_MAX_REQUESTS', 5),
-    );
-    const otpWindow = Number(
-      this.configService.get<number>('OTP_WINDOW', 3600),
-    );
-
-    // Check rate limiting
     const rateLimitKey = `${USER_REDIS_KEYS.OTP_RATE}${email}:change-password`;
-    const currentCount = await this.redisService.get(rateLimitKey);
-    const count = currentCount ? parseInt(currentCount, 10) : 0;
+    const allowance = await this.redisService.consumeOtpSendAllowance(
+      rateLimitKey,
+      `${rateLimitKey}:last_sent`,
+      maxRequests,
+      window,
+      resendCooldown,
+    );
 
-    if (count >= otpMaxRequests) {
+    if (allowance === 'cooldown') {
+      throw new HttpException(
+        'Please wait before requesting a new OTP',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (allowance === 'rate_limited') {
       throw new HttpException(
         'Too many OTP requests. Please try again later.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
 
-    // Check cooldown
-    const lastSentKey = `${rateLimitKey}:last_sent`;
-    const lastSent = await this.redisService.get(lastSentKey);
-    if (lastSent) {
-      const elapsed = Date.now() - parseInt(lastSent, 10);
-      if (elapsed < otpResendCooldown * 1000) {
-        throw new HttpException(
-          'Please wait before requesting a new OTP',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-    }
-
-    // Generate and store OTP
     const otp = this.generateOtp();
     await this.redisService.set(
       `${USER_REDIS_KEYS.OTP_CHANGE_PASSWORD}${email}`,
       otp,
-      otpTtl,
+      ttl,
     );
-
-    // Update rate limit counter
-    if (!currentCount) {
-      await this.redisService.set(rateLimitKey, '1', otpWindow);
-    } else {
-      await this.redisService.incr(rateLimitKey);
-      const ttl = await this.redisService.ttl(rateLimitKey);
-      if (ttl < 0) {
-        await this.redisService.expire(rateLimitKey, otpWindow);
-      }
-    }
-
-    // Record last sent timestamp
-    await this.redisService.set(
-      lastSentKey,
-      Date.now().toString(),
-      otpWindow,
+    await this.redisService.del(
+      `${USER_REDIS_KEYS.OTP_ATTEMPTS}${email}:change-password`,
     );
-
-    // Send OTP email (reuse the existing password reset email template)
     await this.mailService.sendPasswordResetOtp(email, otp);
 
     return { message: 'OTP sent to your email' };
   }
-
   // ═══════════════════════════════════════════════
   //  4. Change Password (Verify OTP + Update)
   // ═══════════════════════════════════════════════
@@ -318,11 +308,9 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    if (user.deletedAt) {
-      throw new ConflictException('Account has been deleted');
+    if (user.deletedAt || user.status !== UserStatus.ACTIVE) {
+      throw new ConflictException('Account is inactive or has been deleted');
     }
-
     if (!user.passwordHash) {
       throw new BadRequestException(
         'Cannot change password for Google-authenticated accounts',
@@ -331,47 +319,35 @@ export class UsersService {
 
     const { otp, newPassword } = dto;
     const email = user.email;
-
-    // Verify OTP from Redis
-    const storedOtp = await this.redisService.get(
-      `${USER_REDIS_KEYS.OTP_CHANGE_PASSWORD}${email}`,
-    );
+    const otpKey = `${USER_REDIS_KEYS.OTP_CHANGE_PASSWORD}${email}`;
+    const storedOtp = await this.redisService.get(otpKey);
 
     if (!storedOtp) {
       throw new BadRequestException('OTP has expired or is invalid');
     }
 
+    const attemptKey = await this.consumeOtpAttempt(email, otpKey);
     if (storedOtp !== otp) {
       throw new BadRequestException('Invalid OTP');
     }
 
-    // Hash new password
     const passwordHash = await this.hashPassword(newPassword);
-
-    // Update user password
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
       select: { id: true },
     });
 
-    // Clean up Redis
-    await this.redisService.del(
-      `${USER_REDIS_KEYS.OTP_CHANGE_PASSWORD}${email}`,
-    );
+    await this.redisService.del(otpKey);
+    await this.redisService.del(attemptKey);
+    await this.redisService.del(`${USER_REDIS_KEYS.REFRESH}${userId}`);
 
-    // Invalidate refresh tokens — force re-login after password change
-    const refreshKey = `refresh:user:${userId}`;
-    await this.redisService.del(refreshKey).catch(() => {});
-
-    // Activity Log: PASSWORD_CHANGED
     await this.activityLogService
       .create(userId, 'PASSWORD_CHANGED', 'USER', userId)
       .catch(() => {});
 
     return { message: 'Password changed successfully. Please log in again.' };
   }
-
   // ═══════════════════════════════════════════════
   //  5. Delete Account (Soft Delete)
   // ═══════════════════════════════════════════════
@@ -384,18 +360,16 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
     if (user.deletedAt) {
       throw new ConflictException('Account has already been deleted');
     }
 
-    // Soft delete: set deletedAt to NOW()
     await this.prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date() },
+      data: { status: UserStatus.INACTIVE, deletedAt: new Date() },
     });
+    await this.redisService.del(`${USER_REDIS_KEYS.REFRESH}${userId}`).catch(() => {});
 
-    // Activity Log: ACCOUNT_DELETED
     await this.activityLogService
       .create(
         userId,

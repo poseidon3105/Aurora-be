@@ -373,7 +373,7 @@
     function handleCredentialResponse(response) {
       const idToken = response.credential;
       console.log('✅ Got ID token, sending to backend...');
-
+      console.log('Google ID token:', idToken);
       // Show loading state
       const output = document.getElementById('responseOutput');
       output.className = '';

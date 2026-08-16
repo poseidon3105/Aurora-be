@@ -1,0 +1,46 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_login",
+  "tag": "Authentication",
+  "summary": "Login with email and password",
+  "request": {
+    "method": "POST",
+    "path": "/auth/login",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "email": "user@example.com",
+        "password": "Abc@1234"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Returns access and refresh tokens",
+      "body": {
+        "accessToken": "<jwt_access_token>",
+        "refreshToken": "<jwt_refresh_token>"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Invalid credentials or unverified email",
+      "body": {
+        "statusCode": 401,
+        "message": "Invalid credentials or unverified email",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

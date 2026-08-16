@@ -1,0 +1,44 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_refresh",
+  "tag": "Authentication",
+  "summary": "Refresh access token using refresh token",
+  "request": {
+    "method": "POST",
+    "path": "/auth/refresh",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "refreshToken": "<string>"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Returns new access token",
+      "body": {
+        "accessToken": "<jwt_access_token>"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Invalid or expired refresh token",
+      "body": {
+        "statusCode": 401,
+        "message": "Invalid or expired refresh token",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

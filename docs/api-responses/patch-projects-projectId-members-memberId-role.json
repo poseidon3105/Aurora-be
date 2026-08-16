@@ -1,0 +1,89 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ProjectsController_updateMemberRole",
+  "tag": "Projects",
+  "summary": "Update a member's role (manager only)",
+  "request": {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/members/{memberId}/role",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      },
+      {
+        "name": "memberId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "roleId": 2
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Role updated successfully",
+      "body": {
+        "message": "Role updated successfully"
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid role or cannot update owner",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid role or cannot update owner",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a project manager",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a project manager",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Project or member not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Project or member not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

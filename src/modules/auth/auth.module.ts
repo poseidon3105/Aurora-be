@@ -13,9 +13,9 @@ import { ActivityLogModule } from '../activity-log/activity-log.module';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_ACCESS_SECRET'),
+        secret: configService.getOrThrow<string>('jwt.accessSecret'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+          expiresIn: configService.get<string>('jwt.accessExpiresIn', '15m'),
         },
       }),
     }),

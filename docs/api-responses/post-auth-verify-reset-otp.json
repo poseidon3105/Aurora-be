@@ -1,0 +1,45 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_verifyResetOtp",
+  "tag": "Authentication",
+  "summary": "Verify password reset OTP",
+  "request": {
+    "method": "POST",
+    "path": "/auth/verify-reset-otp",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "email": "user@example.com",
+        "otp": "123456"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "OTP verified. You can now reset your password.",
+      "body": {
+        "message": "OTP verified. You can now reset your password."
+      }
+    },
+    {
+      "status": 400,
+      "description": "Invalid or expired OTP",
+      "body": {
+        "statusCode": 400,
+        "message": "Invalid or expired OTP",
+        "error": "Bad Request"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

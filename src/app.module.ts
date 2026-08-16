@@ -22,6 +22,14 @@ import { AzureBlobModule } from './azure-blob/azure-blob.module';
       isGlobal: true,
       envFilePath: '.env',
       load: [envConfig],
+      validate: (config) => {
+        for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
+          if (typeof config[key] !== 'string' || config[key].trim().length === 0) {
+            throw new Error(`${key} must be configured`);
+          }
+        }
+        return config;
+      },
     }),
     PrismaModule,
     RedisModule,

@@ -1,0 +1,85 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "ChecklistsController_remove",
+  "tag": "Checklists",
+  "summary": "Soft delete a checklist (manager or creator only, must have no incomplete tasks)",
+  "request": {
+    "method": "DELETE",
+    "path": "/checklists/{checklistId}",
+    "authentication": {
+      "type": "bearer",
+      "header": "Authorization",
+      "value": "Bearer <jwt_access_token>"
+    },
+    "parameters": [
+      {
+        "name": "checklistId",
+        "in": "path",
+        "required": true,
+        "example": 1
+      }
+    ],
+    "body": null
+  },
+  "responses": [
+    {
+      "status": 200,
+      "description": "Checklist deleted successfully",
+      "body": {
+        "id": 201,
+        "projectId": 101,
+        "title": "Backend delivery",
+        "description": "Authentication and API work.",
+        "createdById": 1,
+        "dueDate": "2030-02-15T00:00:00.000Z",
+        "status": "IN_PROGRESS",
+        "deletedAt": "2030-01-15T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 401,
+      "description": "Unauthorized",
+      "body": {
+        "statusCode": 401,
+        "message": "Unauthorized",
+        "error": "Unauthorized"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 403,
+      "description": "Forbidden - not a manager or creator",
+      "body": {
+        "statusCode": 403,
+        "message": "Forbidden - not a manager or creator",
+        "error": "Forbidden"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 404,
+      "description": "Checklist not found",
+      "body": {
+        "statusCode": 404,
+        "message": "Checklist not found",
+        "error": "Not Found"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    },
+    {
+      "status": 409,
+      "description": "Checklist has incomplete tasks",
+      "body": {
+        "statusCode": 409,
+        "message": "Checklist has incomplete tasks",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}

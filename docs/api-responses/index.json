@@ -1,0 +1,474 @@
+{
+  "totalEndpoints": 67,
+  "endpoints": [
+    {
+      "operationId": "AuthController_register",
+      "method": "POST",
+      "path": "/auth/register",
+      "tag": "Authentication",
+      "file": "post-auth-register.json"
+    },
+    {
+      "operationId": "AuthController_verifyEmail",
+      "method": "POST",
+      "path": "/auth/verify-email",
+      "tag": "Authentication",
+      "file": "post-auth-verify-email.json"
+    },
+    {
+      "operationId": "AuthController_resendOtp",
+      "method": "POST",
+      "path": "/auth/resend-otp",
+      "tag": "Authentication",
+      "file": "post-auth-resend-otp.json"
+    },
+    {
+      "operationId": "AuthController_googleLogin",
+      "method": "POST",
+      "path": "/auth/google",
+      "tag": "Authentication",
+      "file": "post-auth-google.json"
+    },
+    {
+      "operationId": "AuthController_login",
+      "method": "POST",
+      "path": "/auth/login",
+      "tag": "Authentication",
+      "file": "post-auth-login.json"
+    },
+    {
+      "operationId": "AuthController_refresh",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "tag": "Authentication",
+      "file": "post-auth-refresh.json"
+    },
+    {
+      "operationId": "AuthController_logout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "tag": "Authentication",
+      "file": "post-auth-logout.json"
+    },
+    {
+      "operationId": "AuthController_forgotPassword",
+      "method": "POST",
+      "path": "/auth/forgot-password",
+      "tag": "Authentication",
+      "file": "post-auth-forgot-password.json"
+    },
+    {
+      "operationId": "AuthController_verifyResetOtp",
+      "method": "POST",
+      "path": "/auth/verify-reset-otp",
+      "tag": "Authentication",
+      "file": "post-auth-verify-reset-otp.json"
+    },
+    {
+      "operationId": "AuthController_resetPassword",
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "tag": "Authentication",
+      "file": "post-auth-reset-password.json"
+    },
+    {
+      "operationId": "ActivityLogController_findMyActivities",
+      "method": "GET",
+      "path": "/activities/me",
+      "tag": "Activity Logs",
+      "file": "get-activities-me.json"
+    },
+    {
+      "operationId": "ActivityLogController_findProjectActivities",
+      "method": "GET",
+      "path": "/projects/{projectId}/activities",
+      "tag": "Activity Logs",
+      "file": "get-projects-projectId-activities.json"
+    },
+    {
+      "operationId": "ActivityLogController_findTaskActivities",
+      "method": "GET",
+      "path": "/tasks/{taskId}/activities",
+      "tag": "Activity Logs",
+      "file": "get-tasks-taskId-activities.json"
+    },
+    {
+      "operationId": "ProjectsController_create",
+      "method": "POST",
+      "path": "/projects",
+      "tag": "Projects",
+      "file": "post-projects.json"
+    },
+    {
+      "operationId": "ProjectsController_findAll",
+      "method": "GET",
+      "path": "/projects",
+      "tag": "Projects",
+      "file": "get-projects.json"
+    },
+    {
+      "operationId": "ProjectsController_findOne",
+      "method": "GET",
+      "path": "/projects/{projectId}",
+      "tag": "Projects",
+      "file": "get-projects-projectId.json"
+    },
+    {
+      "operationId": "ProjectsController_update",
+      "method": "PUT",
+      "path": "/projects/{projectId}",
+      "tag": "Projects",
+      "file": "put-projects-projectId.json"
+    },
+    {
+      "operationId": "ProjectsController_remove",
+      "method": "DELETE",
+      "path": "/projects/{projectId}",
+      "tag": "Projects",
+      "file": "delete-projects-projectId.json"
+    },
+    {
+      "operationId": "ProjectsController_archive",
+      "method": "PATCH",
+      "path": "/projects/{projectId}/archive",
+      "tag": "Projects",
+      "file": "patch-projects-projectId-archive.json"
+    },
+    {
+      "operationId": "ProjectsController_complete",
+      "method": "PATCH",
+      "path": "/projects/{projectId}/complete",
+      "tag": "Projects",
+      "file": "patch-projects-projectId-complete.json"
+    },
+    {
+      "operationId": "ProjectsController_inviteMember",
+      "method": "POST",
+      "path": "/projects/{projectId}/invite",
+      "tag": "Projects",
+      "file": "post-projects-projectId-invite.json"
+    },
+    {
+      "operationId": "ProjectsController_acceptInvitation",
+      "method": "POST",
+      "path": "/projects/invitations/accept",
+      "tag": "Projects",
+      "file": "post-projects-invitations-accept.json"
+    },
+    {
+      "operationId": "ProjectsController_getMembers",
+      "method": "GET",
+      "path": "/projects/{projectId}/members",
+      "tag": "Projects",
+      "file": "get-projects-projectId-members.json"
+    },
+    {
+      "operationId": "ProjectsController_getMemberDetail",
+      "method": "GET",
+      "path": "/projects/{projectId}/members/{memberId}",
+      "tag": "Projects",
+      "file": "get-projects-projectId-members-memberId.json"
+    },
+    {
+      "operationId": "ProjectsController_removeMember",
+      "method": "DELETE",
+      "path": "/projects/{projectId}/members/{memberId}",
+      "tag": "Projects",
+      "file": "delete-projects-projectId-members-memberId.json"
+    },
+    {
+      "operationId": "ProjectsController_updateMemberRole",
+      "method": "PATCH",
+      "path": "/projects/{projectId}/members/{memberId}/role",
+      "tag": "Projects",
+      "file": "patch-projects-projectId-members-memberId-role.json"
+    },
+    {
+      "operationId": "ProjectsController_leaveProject",
+      "method": "POST",
+      "path": "/projects/{projectId}/leave",
+      "tag": "Projects",
+      "file": "post-projects-projectId-leave.json"
+    },
+    {
+      "operationId": "NotificationsController_findAll",
+      "method": "GET",
+      "path": "/notifications",
+      "tag": "Notifications",
+      "file": "get-notifications.json"
+    },
+    {
+      "operationId": "NotificationsController_getUnreadCount",
+      "method": "GET",
+      "path": "/notifications/unread-count",
+      "tag": "Notifications",
+      "file": "get-notifications-unread-count.json"
+    },
+    {
+      "operationId": "NotificationsController_markAsRead",
+      "method": "PATCH",
+      "path": "/notifications/{notificationId}/read",
+      "tag": "Notifications",
+      "file": "patch-notifications-notificationId-read.json"
+    },
+    {
+      "operationId": "NotificationsController_markAllAsRead",
+      "method": "PATCH",
+      "path": "/notifications/read-all",
+      "tag": "Notifications",
+      "file": "patch-notifications-read-all.json"
+    },
+    {
+      "operationId": "NotificationsController_remove",
+      "method": "DELETE",
+      "path": "/notifications/{notificationId}",
+      "tag": "Notifications",
+      "file": "delete-notifications-notificationId.json"
+    },
+    {
+      "operationId": "ChecklistsController_create",
+      "method": "POST",
+      "path": "/projects/{projectId}/checklists",
+      "tag": "Checklists",
+      "file": "post-projects-projectId-checklists.json"
+    },
+    {
+      "operationId": "ChecklistsController_findAll",
+      "method": "GET",
+      "path": "/projects/{projectId}/checklists",
+      "tag": "Checklists",
+      "file": "get-projects-projectId-checklists.json"
+    },
+    {
+      "operationId": "ChecklistsController_findOne",
+      "method": "GET",
+      "path": "/checklists/{checklistId}",
+      "tag": "Checklists",
+      "file": "get-checklists-checklistId.json"
+    },
+    {
+      "operationId": "ChecklistsController_update",
+      "method": "PUT",
+      "path": "/checklists/{checklistId}",
+      "tag": "Checklists",
+      "file": "put-checklists-checklistId.json"
+    },
+    {
+      "operationId": "ChecklistsController_remove",
+      "method": "DELETE",
+      "path": "/checklists/{checklistId}",
+      "tag": "Checklists",
+      "file": "delete-checklists-checklistId.json"
+    },
+    {
+      "operationId": "ChecklistsController_changeStatus",
+      "method": "PATCH",
+      "path": "/checklists/{checklistId}/status",
+      "tag": "Checklists",
+      "file": "patch-checklists-checklistId-status.json"
+    },
+    {
+      "operationId": "TasksController_create",
+      "method": "POST",
+      "path": "/checklists/{checklistId}/tasks",
+      "tag": "Tasks",
+      "file": "post-checklists-checklistId-tasks.json"
+    },
+    {
+      "operationId": "TasksController_findAll",
+      "method": "GET",
+      "path": "/checklists/{checklistId}/tasks",
+      "tag": "Tasks",
+      "file": "get-checklists-checklistId-tasks.json"
+    },
+    {
+      "operationId": "TasksController_findOne",
+      "method": "GET",
+      "path": "/tasks/{taskId}",
+      "tag": "Tasks",
+      "file": "get-tasks-taskId.json"
+    },
+    {
+      "operationId": "TasksController_update",
+      "method": "PUT",
+      "path": "/tasks/{taskId}",
+      "tag": "Tasks",
+      "file": "put-tasks-taskId.json"
+    },
+    {
+      "operationId": "TasksController_remove",
+      "method": "DELETE",
+      "path": "/tasks/{taskId}",
+      "tag": "Tasks",
+      "file": "delete-tasks-taskId.json"
+    },
+    {
+      "operationId": "TasksController_assign",
+      "method": "PATCH",
+      "path": "/tasks/{taskId}/assign",
+      "tag": "Tasks",
+      "file": "patch-tasks-taskId-assign.json"
+    },
+    {
+      "operationId": "TasksController_changeStatus",
+      "method": "PATCH",
+      "path": "/tasks/{taskId}/status",
+      "tag": "Tasks",
+      "file": "patch-tasks-taskId-status.json"
+    },
+    {
+      "operationId": "TasksController_reorder",
+      "method": "PATCH",
+      "path": "/tasks/reorder",
+      "tag": "Tasks",
+      "file": "patch-tasks-reorder.json"
+    },
+    {
+      "operationId": "TasksController_getTaskSummary",
+      "method": "GET",
+      "path": "/projects/{projectId}/task-summary",
+      "tag": "Tasks",
+      "file": "get-projects-projectId-task-summary.json"
+    },
+    {
+      "operationId": "CommentsController_create",
+      "method": "POST",
+      "path": "/tasks/{taskId}/comments",
+      "tag": "Task Comments",
+      "file": "post-tasks-taskId-comments.json"
+    },
+    {
+      "operationId": "CommentsController_findAll",
+      "method": "GET",
+      "path": "/tasks/{taskId}/comments",
+      "tag": "Task Comments",
+      "file": "get-tasks-taskId-comments.json"
+    },
+    {
+      "operationId": "CommentsController_update",
+      "method": "PUT",
+      "path": "/comments/{commentId}",
+      "tag": "Task Comments",
+      "file": "put-comments-commentId.json"
+    },
+    {
+      "operationId": "CommentsController_remove",
+      "method": "DELETE",
+      "path": "/comments/{commentId}",
+      "tag": "Task Comments",
+      "file": "delete-comments-commentId.json"
+    },
+    {
+      "operationId": "AttachmentsController_upload",
+      "method": "POST",
+      "path": "/tasks/{taskId}/attachments",
+      "tag": "Task Attachments",
+      "file": "post-tasks-taskId-attachments.json"
+    },
+    {
+      "operationId": "AttachmentsController_findAll",
+      "method": "GET",
+      "path": "/tasks/{taskId}/attachments",
+      "tag": "Task Attachments",
+      "file": "get-tasks-taskId-attachments.json"
+    },
+    {
+      "operationId": "AttachmentsController_download",
+      "method": "GET",
+      "path": "/attachments/{attachmentId}/download",
+      "tag": "Task Attachments",
+      "file": "get-attachments-attachmentId-download.json"
+    },
+    {
+      "operationId": "AttachmentsController_remove",
+      "method": "DELETE",
+      "path": "/attachments/{attachmentId}",
+      "tag": "Task Attachments",
+      "file": "delete-attachments-attachmentId.json"
+    },
+    {
+      "operationId": "TagsController_create",
+      "method": "POST",
+      "path": "/projects/{projectId}/tags",
+      "tag": "Tags",
+      "file": "post-projects-projectId-tags.json"
+    },
+    {
+      "operationId": "TagsController_findAll",
+      "method": "GET",
+      "path": "/projects/{projectId}/tags",
+      "tag": "Tags",
+      "file": "get-projects-projectId-tags.json"
+    },
+    {
+      "operationId": "TagsController_update",
+      "method": "PUT",
+      "path": "/tags/{tagId}",
+      "tag": "Tags",
+      "file": "put-tags-tagId.json"
+    },
+    {
+      "operationId": "TagsController_remove",
+      "method": "DELETE",
+      "path": "/tags/{tagId}",
+      "tag": "Tags",
+      "file": "delete-tags-tagId.json"
+    },
+    {
+      "operationId": "TagsController_assignToTask",
+      "method": "POST",
+      "path": "/tasks/{taskId}/tags",
+      "tag": "Tags",
+      "file": "post-tasks-taskId-tags.json"
+    },
+    {
+      "operationId": "TagsController_getTaskTags",
+      "method": "GET",
+      "path": "/tasks/{taskId}/tags",
+      "tag": "Tags",
+      "file": "get-tasks-taskId-tags.json"
+    },
+    {
+      "operationId": "TagsController_removeFromTask",
+      "method": "DELETE",
+      "path": "/tasks/{taskId}/tags/{tagId}",
+      "tag": "Tags",
+      "file": "delete-tasks-taskId-tags-tagId.json"
+    },
+    {
+      "operationId": "UsersController_getProfile",
+      "method": "GET",
+      "path": "/profile",
+      "tag": "Profile",
+      "file": "get-profile.json"
+    },
+    {
+      "operationId": "UsersController_updateProfile",
+      "method": "PATCH",
+      "path": "/profile",
+      "tag": "Profile",
+      "file": "patch-profile.json"
+    },
+    {
+      "operationId": "UsersController_deleteAccount",
+      "method": "DELETE",
+      "path": "/profile",
+      "tag": "Profile",
+      "file": "delete-profile.json"
+    },
+    {
+      "operationId": "UsersController_requestPasswordChange",
+      "method": "POST",
+      "path": "/profile/request-password-change",
+      "tag": "Profile",
+      "file": "post-profile-request-password-change.json"
+    },
+    {
+      "operationId": "UsersController_changePassword",
+      "method": "POST",
+      "path": "/profile/change-password",
+      "tag": "Profile",
+      "file": "post-profile-change-password.json"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "contractType": "illustrative-response-contract",
+  "source": {
+    "openapi": "http://localhost:3000/api/docs-json",
+    "implementation": "controllers and services in src/modules",
+    "note": "Examples use synthetic IDs, emails, timestamps, JWTs and Azure URLs. They are not live production responses."
+  },
+  "operationId": "AuthController_register",
+  "tag": "Authentication",
+  "summary": "Register a new user account",
+  "request": {
+    "method": "POST",
+    "path": "/auth/register",
+    "authentication": {
+      "type": "none"
+    },
+    "parameters": [],
+    "body": {
+      "contentType": "application/json",
+      "body": {
+        "email": "user@example.com",
+        "password": "Abc@1234",
+        "fullName": "John Doe"
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 201,
+      "description": "Registration successful. Please verify your email.",
+      "body": {
+        "message": "Registration successful. Please verify your email."
+      }
+    },
+    {
+      "status": 409,
+      "description": "Email already exists",
+      "body": {
+        "statusCode": 409,
+        "message": "Email already exists",
+        "error": "Conflict"
+      },
+      "note": "Illustrative NestJS exception body. The exact message varies by validation or business-rule failure."
+    }
+  ]
+}
