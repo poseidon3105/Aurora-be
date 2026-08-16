@@ -27,16 +27,63 @@ export class TasksService {
   //  Helper: Find task or throw 404
   // ───────────────────────────
 
+  private ensureChecklistProjectActive(checklist: {
+    deletedAt: Date | null;
+    project: { deletedAt: Date | null; status: ProjectStatus };
+  }) {
+    if (checklist.deletedAt) {
+      throw new BadRequestException('Checklist has been deleted');
+    }
+    if (checklist.project.deletedAt) {
+      throw new BadRequestException('Project has been deleted');
+    }
+    if (checklist.project.status !== ProjectStatus.ACTIVE) {
+      throw new BadRequestException('Project must be ACTIVE to access tasks');
+    }
+  }
+
+  private async findActiveProjectOrThrow(projectId: number) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.deletedAt) {
+      throw new BadRequestException('Project has been deleted');
+    }
+    if (project.status !== ProjectStatus.ACTIVE) {
+      throw new BadRequestException('Project must be ACTIVE to access tasks');
+    }
+
+    return project;
+  }
+
+  private async findActiveChecklistWithProjectOrThrow(checklistId: number) {
+    const checklist = await this.prisma.checklist.findUnique({
+      where: { id: checklistId },
+      include: { project: true },
+    });
+    if (!checklist) {
+      throw new NotFoundException('Checklist not found');
+    }
+
+    this.ensureChecklistProjectActive(checklist);
+    return checklist;
+  }
+
   private async findTaskOrThrow(taskId: number) {
     const task = await this.prisma.checklistItem.findUnique({
       where: { id: taskId },
+      include: { checklist: { include: { project: true } } },
     });
-    if (!task) {
+    if (!task || task.deletedAt) {
       throw new NotFoundException('Task not found');
     }
+
+    this.ensureChecklistProjectActive(task.checklist);
     return task;
   }
-
   // ───────────────────────────
   //  Helper: Check if user is an active project member
   // ───────────────────────────
@@ -263,14 +310,7 @@ export class TasksService {
   // ═══════════════════════════════════════════════
 
   async findAll(checklistId: number, userId: number) {
-    // Validate checklist exists
-    const checklist = await this.prisma.checklist.findUnique({
-      where: { id: checklistId },
-    });
-    if (!checklist) {
-      throw new NotFoundException('Checklist not found');
-    }
-
+    const checklist = await this.findActiveChecklistWithProjectOrThrow(checklistId);
     // Authorization: Must be a project member
     const isMember = await this.isProjectMember(checklist.projectId, userId);
     if (!isMember) {
@@ -294,7 +334,13 @@ export class TasksService {
     const task = await this.prisma.checklistItem.findUnique({
       where: { id: taskId },
       include: {
-        checklist: { select: { projectId: true } },
+        checklist: {
+          select: {
+            projectId: true,
+            deletedAt: true,
+            project: { select: { deletedAt: true, status: true } },
+          },
+        },
         assignee: {
           select: { id: true, fullName: true, email: true, avatarUrl: true },
         },
@@ -308,17 +354,18 @@ export class TasksService {
         },
         _count: {
           select: {
-            comments: true,
-            attachments: true,
+            comments: { where: { deletedAt: null } },
+            attachments: { where: { deletedAt: null } },
           },
         },
       },
     });
-    if (!task) {
+    if (!task || task.deletedAt) {
       throw new NotFoundException('Task not found');
     }
 
-    // Authorization: Must be a member of the project
+    this.ensureChecklistProjectActive(task.checklist);
+
     const isMember = await this.isProjectMember(task.checklist.projectId, userId);
     if (!isMember) {
       throw new ForbiddenException('You are not a member of this project');
@@ -326,10 +373,10 @@ export class TasksService {
 
     return {
       ...task,
+      checklist: { projectId: task.checklist.projectId },
       tags: task.tags.map((tt) => tt.tag),
     };
   }
-
   // ═══════════════════════════════════════════════
   //  6. Update Task
   // ═══════════════════════════════════════════════
@@ -720,6 +767,7 @@ export class TasksService {
   // ═══════════════════════════════════════════════
 
   async getTaskSummary(projectId: number, userId: number) {
+    await this.findActiveProjectOrThrow(projectId);
     // Authorization: Must be a project member
     const isMember = await this.isProjectMember(projectId, userId);
     if (!isMember) {
