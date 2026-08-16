@@ -1,22 +1,61 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 @Injectable()
-export class MailService {
-  private transporter: Transporter;
+export class MailService implements OnModuleInit {
+  private readonly logger = new Logger(MailService.name);
+  private readonly transporter: Transporter;
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.configService.get<number>('SMTP_PORT', 587),
-      secure: false,
+      host: this.configService.get<string>('smtp.host', 'smtp.gmail.com'),
+      port: this.configService.get<number>('smtp.port', 587),
+      secure: this.configService.get<boolean>('smtp.secure', false),
       auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
+        user: this.configService.get<string>('smtp.user'),
+        pass: this.configService.get<string>('smtp.pass'),
       },
+      connectionTimeout: this.configService.get<number>(
+        'smtp.connectionTimeoutMs',
+        10000,
+      ),
+      greetingTimeout: this.configService.get<number>(
+        'smtp.greetingTimeoutMs',
+        10000,
+      ),
+      socketTimeout: this.configService.get<number>(
+        'smtp.socketTimeoutMs',
+        15000,
+      ),
     });
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (!this.configService.get<boolean>('smtp.verifyOnStartup', true)) {
+      this.logger.warn('SMTP verification on startup is disabled');
+      return;
+    }
+
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP transport verified');
+    } catch (error) {
+      this.logger.error(
+        'SMTP verification failed during startup',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new ServiceUnavailableException(
+        'SMTP is unavailable during application startup',
+      );
+    }
   }
 
   private getFrontendUrl(): string {
@@ -30,7 +69,7 @@ export class MailService {
 
   async sendVerificationOtp(email: string, otp: string): Promise<void> {
     await this.transporter.sendMail({
-      from: `"Aurora" <${this.configService.get<string>('MAIL_FROM')}>`,
+      from: `"Aurora" <${this.configService.get<string>('smtp.from')}>`,
       to: email,
       subject: 'Email Verification - Aurora',
       text: `Your email verification code is: ${otp}
@@ -70,7 +109,7 @@ If you did not request this verification, you can safely ignore this email.`,
 
   async sendPasswordResetOtp(email: string, otp: string): Promise<void> {
     await this.transporter.sendMail({
-      from: this.configService.get<string>('MAIL_FROM', 'noreply@aurora.com'),
+      from: this.configService.get<string>('smtp.from', 'noreply@aurora.com'),
       to: email,
       subject: 'Password Reset - Aurora',
       html: `
@@ -88,11 +127,10 @@ If you did not request this verification, you can safely ignore this email.`,
     senderName: string,
     taskId: number,
   ): Promise<void> {
-
     const taskUrl = `${this.getFrontendUrl()}/tasks/${taskId}`;
 
     await this.transporter.sendMail({
-      from: `"Aurora" <${this.configService.get<string>('MAIL_FROM')}>`,
+      from: `"Aurora" <${this.configService.get<string>('smtp.from')}>`,
       to: email,
       subject: 'You were mentioned in a comment - Aurora',
       text: `${senderName} mentioned you in a comment.
@@ -132,7 +170,7 @@ ${taskUrl}`,
     const invitationUrl = `${this.getFrontendUrl()}/invite/${token}`;
 
     await this.transporter.sendMail({
-      from: `"Aurora" <${this.configService.get<string>('MAIL_FROM')}>`,
+      from: `"Aurora" <${this.configService.get<string>('smtp.from')}>`,
       to: email,
       subject: 'Project Invitation - Aurora',
       text: `You have been invited to join a project.

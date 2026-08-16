@@ -227,9 +227,9 @@ export class TasksService {
       throw new BadRequestException('Project must be ACTIVE to create tasks');
     }
 
-    // Authorization: PROJECT_MANAGER or PROJECT_MEMBER
+    // Authorization: PROJECT_MANAGER or MEMBER
     const isManager = await this.hasProjectRole(project.id, userId, 'PROJECT_MANAGER');
-    const isMember = await this.hasProjectRole(project.id, userId, 'PROJECT_MEMBER');
+    const isMember = await this.hasProjectRole(project.id, userId, 'MEMBER');
     if (!isManager && !isMember) {
       throw new ForbiddenException('Only a project manager or project member can create tasks');
     }

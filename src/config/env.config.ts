@@ -4,6 +4,9 @@ export const envConfig = () => ({
   },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
+    connectTimeoutMs: parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS || '5000', 10),
+    commandTimeoutMs: parseInt(process.env.REDIS_COMMAND_TIMEOUT_MS || '5000', 10),
+    maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES_PER_REQUEST || '1', 10),
   },
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,
@@ -17,6 +20,11 @@ export const envConfig = () => ({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.MAIL_FROM || 'noreply@aurora.com',
+    secure: process.env.SMTP_SECURE === 'true',
+    connectionTimeoutMs: parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '10000', 10),
+    greetingTimeoutMs: parseInt(process.env.SMTP_GREETING_TIMEOUT_MS || '10000', 10),
+    socketTimeoutMs: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '15000', 10),
+    verifyOnStartup: process.env.SMTP_VERIFY_ON_STARTUP !== 'false',
   },
   otp: {
     ttl: parseInt(process.env.OTP_TTL || '300', 10),

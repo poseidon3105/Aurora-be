@@ -1,20 +1,62 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
   private client!: Redis;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
-  onModuleInit() {
-    const url = this.configService.get<string>('redis.url', 'redis://localhost:6379');
-    this.client = new Redis(url);
+  async onModuleInit(): Promise<void> {
+    const url = this.configService.get<string>(
+      'redis.url',
+      'redis://localhost:6379',
+    );
+    this.client = new Redis(url, {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      connectTimeout: this.configService.get<number>(
+        'redis.connectTimeoutMs',
+        5000,
+      ),
+      commandTimeout: this.configService.get<number>(
+        'redis.commandTimeoutMs',
+        5000,
+      ),
+      maxRetriesPerRequest: this.configService.get<number>(
+        'redis.maxRetriesPerRequest',
+        1,
+      ),
+      retryStrategy: (attempt) => Math.min(attempt * 100, 1000),
+    });
+    this.client.on('error', (error) => {
+      this.logger.error(
+        'Redis client error',
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
+
+    try {
+      await this.client.connect();
+      this.logger.log('Redis connected');
+    } catch (error) {
+      this.client.disconnect();
+      throw new ServiceUnavailableException(
+        'Redis is unavailable during application startup',
+      );
+    }
   }
 
-  onModuleDestroy() {
-    this.client?.quit();
+  onModuleDestroy(): void {
+    this.client?.disconnect();
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {

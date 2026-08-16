@@ -112,9 +112,9 @@ export class ChecklistsService {
       throw new BadRequestException('Project must be ACTIVE to create checklists');
     }
 
-    // Authorization: PROJECT_MANAGER or PROJECT_MEMBER
+    // Authorization: PROJECT_MANAGER or MEMBER
     const isManager = await this.hasProjectRole(projectId, userId, 'PROJECT_MANAGER');
-    const isMember = await this.hasProjectRole(projectId, userId, 'PROJECT_MEMBER');
+    const isMember = await this.hasProjectRole(projectId, userId, 'MEMBER');
     if (!isManager && !isMember) {
       throw new ForbiddenException(
         'Only a project manager or project member can create checklists',
