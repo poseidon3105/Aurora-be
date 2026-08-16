@@ -10,6 +10,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { ProjectMemberStatus, ProjectStatus, UserStatus } from '@prisma/client';
+import { resolveMentionedUsers } from './mention.util';
 
 @Injectable()
 export class CommentsService {
@@ -26,7 +28,12 @@ export class CommentsService {
 
   private async isProjectMember(projectId: number, userId: number): Promise<boolean> {
     const member = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, status: 'ACTIVE' },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     return !!member;
   }
@@ -43,7 +50,13 @@ export class CommentsService {
     const role = await this.prisma.projectRole.findUnique({ where: { name: roleName } });
     if (!role) return false;
     const membership = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, roleId: role.id, status: 'ACTIVE' },
+      where: {
+        projectId,
+        userId,
+        roleId: role.id,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     return !!membership;
   }
@@ -52,17 +65,39 @@ export class CommentsService {
   //  Helper: Find task with project ID, or throw 404
   // ───────────────────────────
 
+  private ensureTaskContainerActive(task: {
+    deletedAt: Date | null;
+    checklist: {
+      deletedAt: Date | null;
+      project: { deletedAt: Date | null; status: ProjectStatus };
+    };
+  }) {
+    if (task.deletedAt) {
+      throw new NotFoundException('Task not found');
+    }
+    if (task.checklist.deletedAt) {
+      throw new BadRequestException('Checklist has been deleted');
+    }
+    if (task.checklist.project.deletedAt) {
+      throw new BadRequestException('Project has been deleted');
+    }
+    if (task.checklist.project.status !== ProjectStatus.ACTIVE) {
+      throw new BadRequestException('Project must be ACTIVE to access comments');
+    }
+  }
+
   private async findTaskWithProjectOrThrow(taskId: number) {
     const task = await this.prisma.checklistItem.findUnique({
       where: { id: taskId },
-      include: { checklist: { select: { projectId: true } } },
+      include: { checklist: { include: { project: true } } },
     });
     if (!task) {
       throw new NotFoundException('Task not found');
     }
+
+    this.ensureTaskContainerActive(task);
     return task;
   }
-
   // ───────────────────────────
   //  Helper: Find comment or throw 404
   // ───────────────────────────
@@ -87,7 +122,7 @@ export class CommentsService {
       include: {
         task: {
           include: {
-            checklist: { select: { projectId: true } },
+            checklist: { include: { project: true } },
           },
         },
       },
@@ -95,9 +130,10 @@ export class CommentsService {
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
+
+    this.ensureTaskContainerActive(comment.task);
     return comment;
   }
-
   // ───────────────────────────
   //  Notify task participants about a new comment
   // ───────────────────────────
@@ -113,21 +149,40 @@ export class CommentsService {
     commenterName: string,
     taskTitle: string,
   ) {
-    // Get the task to find the assignee
     const task = await this.prisma.checklistItem.findUnique({
       where: { id: taskId },
       select: { assigneeId: true },
     });
     if (!task) return;
 
-    // Collect unique participant IDs (assignee + other commenters)
-    const participantIds = new Set<number>();
+    const projectMembers = await this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
+      include: {
+        user: { select: { id: true, status: true, deletedAt: true } },
+      },
+    });
+    const activeMemberIds = new Set(
+      projectMembers
+        .filter(
+          (member) =>
+            member.user.status === UserStatus.ACTIVE && !member.user.deletedAt,
+        )
+        .map((member) => member.userId),
+    );
 
-    if (task.assigneeId && task.assigneeId !== commenterId) {
+    const participantIds = new Set<number>();
+    if (
+      task.assigneeId &&
+      task.assigneeId !== commenterId &&
+      activeMemberIds.has(task.assigneeId)
+    ) {
       participantIds.add(task.assigneeId);
     }
 
-    // Find other commenters on this task
     const otherCommenters = await this.prisma.taskComment.findMany({
       where: {
         taskId,
@@ -136,21 +191,17 @@ export class CommentsService {
       },
       select: { userId: true },
     });
-    otherCommenters.forEach((c) => participantIds.add(c.userId));
-
-    if (participantIds.size === 0) return;
+    otherCommenters
+      .filter((comment) => activeMemberIds.has(comment.userId))
+      .forEach((comment) => participantIds.add(comment.userId));
 
     const content = `${commenterName} commented on task "${taskTitle}".`;
-
     for (const participantId of participantIds) {
-      await this.notificationsService.create(
-        participantId,
-        'New Comment',
-        content,
-      ).catch(() => {});
+      await this.notificationsService
+        .create(participantId, 'New Comment', content)
+        .catch(() => {});
     }
   }
-
   // ═══════════════════════════════════════════════
   //  @mention Detection & Processing
   // ═══════════════════════════════════════════════
@@ -166,47 +217,38 @@ export class CommentsService {
     senderId: number,
     senderName: string,
   ) {
-    // Match @username patterns (alphanumeric + spaces between words)
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
-    const mentions: string[] = [];
-    let match: RegExpExecArray | null;
-
-    while ((match = mentionRegex.exec(content)) !== null) {
-      mentions.push(match[1].trim());
-    }
-
-    if (mentions.length === 0) return;
-
-    // Fetch all active project members with user info
     const projectMembers = await this.prisma.projectMember.findMany({
-      where: { projectId, status: 'ACTIVE' },
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
       include: {
-        user: { select: { id: true, fullName: true, email: true } },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            status: true,
+            deletedAt: true,
+          },
+        },
       },
     });
 
-    // Build a lookup of fullName → user
-    const userMap = new Map<string, { id: number; fullName: string; email: string }>();
-    for (const member of projectMembers) {
-      const lowerName = member.user.fullName.toLowerCase();
-      if (!userMap.has(lowerName)) {
-        userMap.set(lowerName, member.user);
-      }
-    }
+    const mentionedUsers = resolveMentionedUsers(
+      content,
+      projectMembers
+        .map((member) => member.user)
+        .filter(
+          (user) => user.status === UserStatus.ACTIVE && !user.deletedAt,
+        )
+        .map(({ id, fullName, email }) => ({ id, fullName, email })),
+    );
 
-    // Process each unique mention
-    const processedUserIds = new Set<number>();
-
-    for (const mention of mentions) {
-      const user = userMap.get(mention.toLowerCase());
-      if (!user || processedUserIds.has(user.id)) continue;
-
-      // Skip self-mentions — don't notify the comment author
+    for (const user of mentionedUsers) {
       if (user.id === senderId) continue;
 
-      processedUserIds.add(user.id);
-
-      // Create notification
       await this.prisma.notification.create({
         data: {
           userId: user.id,
@@ -215,25 +257,17 @@ export class CommentsService {
         },
       });
 
-      // Send email notification
       await this.mailService
         .sendMentionNotification(user.email, senderName, taskId)
-        .catch(() => {
-          // Silently fail — email delivery should not block comment creation
-        });
+        .catch(() => {});
     }
   }
-
   // ═══════════════════════════════════════════════
   //  2. Create Comment
   // ═══════════════════════════════════════════════
 
   async create(taskId: number, dto: CreateCommentDto, userId: number) {
-    // Validate task exists and is not deleted
     const task = await this.findTaskWithProjectOrThrow(taskId);
-    if (task.deletedAt) {
-      throw new BadRequestException('Cannot comment on a deleted task');
-    }
 
     const projectId = task.checklist.projectId;
 
@@ -331,19 +365,20 @@ export class CommentsService {
   // ═══════════════════════════════════════════════
 
   async update(commentId: number, dto: UpdateCommentDto, userId: number) {
-    const comment = await this.findCommentOrThrow(commentId);
+    const comment = await this.findCommentWithProject(commentId);
 
-    // Cannot update deleted comments
     if (comment.deletedAt) {
       throw new BadRequestException('Cannot update a deleted comment');
     }
 
-    // Authorization: Only the comment owner can edit
+    const projectId = comment.task.checklist.projectId;
+    if (!(await this.isProjectMember(projectId, userId))) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
     if (comment.userId !== userId) {
       throw new ForbiddenException('Only the comment owner can edit this comment');
     }
 
-    // Update the comment
     const updated = await this.prisma.taskComment.update({
       where: { id: commentId },
       data: {
@@ -352,20 +387,15 @@ export class CommentsService {
       },
     });
 
-    // Activity Log: COMMENT_UPDATED
-    await this.activityLogService.create(
-      userId,
-      'COMMENT_UPDATED',
-      'TASK_COMMENT',
-      commentId,
-    ).catch(() => {});
+    await this.activityLogService
+      .create(userId, 'COMMENT_UPDATED', 'TASK_COMMENT', commentId)
+      .catch(() => {});
 
     return {
       id: updated.id,
       content: updated.content,
     };
   }
-
   // ═══════════════════════════════════════════════
   //  5. Delete Comment
   // ═══════════════════════════════════════════════
@@ -373,36 +403,31 @@ export class CommentsService {
   async remove(commentId: number, userId: number) {
     const commentWithProject = await this.findCommentWithProject(commentId);
 
-    // Cannot delete already deleted comments
     if (commentWithProject.deletedAt) {
       throw new BadRequestException('Comment has already been deleted');
     }
 
     const projectId = commentWithProject.task.checklist.projectId;
+    if (!(await this.isProjectMember(projectId, userId))) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
 
-    // Authorization: Comment Owner or PROJECT_MANAGER
     const isOwner = commentWithProject.userId === userId;
     const isManager = await this.hasProjectRole(projectId, userId, 'PROJECT_MANAGER');
-
     if (!isOwner && !isManager) {
       throw new ForbiddenException(
         'Only the comment owner or a project manager can delete this comment',
       );
     }
 
-    // Soft delete
     await this.prisma.taskComment.update({
       where: { id: commentId },
       data: { deletedAt: new Date() },
     });
 
-    // Activity Log: COMMENT_DELETED
-    await this.activityLogService.create(
-      userId,
-      'COMMENT_DELETED',
-      'TASK_COMMENT',
-      commentId,
-    ).catch(() => {});
+    await this.activityLogService
+      .create(userId, 'COMMENT_DELETED', 'TASK_COMMENT', commentId)
+      .catch(() => {});
 
     return { message: 'Comment deleted successfully' };
   }
