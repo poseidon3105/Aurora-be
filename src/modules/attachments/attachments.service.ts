@@ -73,6 +73,18 @@ export class AttachmentsService {
     return !!membership;
   }
 
+  private async hasElevatedSystemRole(userId: number): Promise<boolean> {
+    const assignment = await this.prisma.userSystemRole.findFirst({
+      where: {
+        userId,
+        role: { is: { name: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+        user: { is: { status: UserStatus.ACTIVE, deletedAt: null } },
+      },
+      select: { userId: true },
+    });
+    return !!assignment;
+  }
+
   private ensureTaskContainerActive(task: {
     deletedAt: Date | null;
     checklist: {
@@ -278,18 +290,18 @@ export class AttachmentsService {
     const attachment = await this.findAttachmentWithProjectOrThrow(attachmentId);
     const projectId = attachment.task.checklist.projectId;
 
-    if (!(await this.isProjectMember(projectId, userId))) {
+    const isSystemAdmin = await this.hasElevatedSystemRole(userId);
+    const isMember = isSystemAdmin || await this.isProjectMember(projectId, userId);
+    if (!isMember) {
       throw new ForbiddenException('You are not a member of this project');
     }
 
     const isOwner = attachment.uploadedById === userId;
     const isManager = await this.hasProjectRole(projectId, userId, 'PROJECT_MANAGER');
-    const isAdmin = await this.hasProjectRole(projectId, userId, 'ADMIN');
-    const isSuperAdmin = await this.hasProjectRole(projectId, userId, 'SUPER_ADMIN');
 
-    if (!isOwner && !isManager && !isAdmin && !isSuperAdmin) {
+    if (!isOwner && !isManager && !isSystemAdmin) {
       throw new ForbiddenException(
-        'Only the attachment owner, project manager, or admin can delete this attachment',
+        'Only the attachment owner, project manager, or system admin can delete this attachment',
       );
     }
 
