@@ -43,7 +43,12 @@ export class TasksService {
 
   private async isProjectMember(projectId: number, userId: number): Promise<boolean> {
     const member = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     return !!member;
   }
@@ -60,7 +65,13 @@ export class TasksService {
     const role = await this.prisma.projectRole.findUnique({ where: { name: roleName } });
     if (!role) return false;
     const membership = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, roleId: role.id, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        projectId,
+        userId,
+        roleId: role.id,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     return !!membership;
   }
@@ -89,6 +100,18 @@ export class TasksService {
   // ───────────────────────────
 
   private async autoUpdateChecklistStatus(checklistId: number) {
+    const checklist = await this.prisma.checklist.findUnique({
+      where: { id: checklistId },
+      include: { project: true },
+    });
+    if (
+      !checklist ||
+      checklist.deletedAt ||
+      checklist.project.deletedAt ||
+      checklist.project.status !== ProjectStatus.ACTIVE
+    ) {
+      return;
+    }
     // Find the DONE status
     const doneStatus = await this.prisma.taskStatus.findFirst({
       where: { name: 'DONE' },
@@ -501,14 +524,25 @@ export class TasksService {
 
   async changeStatus(taskId: number, dto: ChangeTaskStatusDto, userId: number) {
     const task = await this.findTaskOrThrow(taskId);
+    if (task.deletedAt) {
+      throw new BadRequestException('Cannot change the status of a deleted task');
+    }
 
-    // Get checklist + project for auth
     const checklist = await this.prisma.checklist.findUnique({
       where: { id: task.checklistId },
       include: { project: true },
     });
     if (!checklist) {
       throw new NotFoundException('Checklist not found');
+    }
+    if (checklist.deletedAt) {
+      throw new BadRequestException('Checklist has been deleted');
+    }
+    if (checklist.project.deletedAt) {
+      throw new BadRequestException('Project has been deleted');
+    }
+    if (checklist.project.status !== ProjectStatus.ACTIVE) {
+      throw new BadRequestException('Project must be ACTIVE to change task status');
     }
 
     // Authorization: Must be a project member
