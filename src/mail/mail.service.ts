@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
@@ -17,6 +17,15 @@ export class MailService {
         pass: this.configService.get<string>('SMTP_PASS'),
       },
     });
+  }
+
+  private getFrontendUrl(): string {
+    const frontendUrl = this.configService.get<string>('frontend.url');
+    if (!frontendUrl || frontendUrl.trim().length === 0) {
+      throw new InternalServerErrorException('FRONTEND_URL must be configured');
+    }
+
+    return frontendUrl.replace(/\/+$/, '');
   }
 
   async sendVerificationOtp(email: string, otp: string): Promise<void> {
@@ -80,7 +89,7 @@ If you did not request this verification, you can safely ignore this email.`,
     taskId: number,
   ): Promise<void> {
 
-    const taskUrl = `${this.configService.get<string>('FRONTEND_URL')}/tasks/${taskId}`;
+    const taskUrl = `${this.getFrontendUrl()}/tasks/${taskId}`;
 
     await this.transporter.sendMail({
       from: `"Aurora" <${this.configService.get<string>('MAIL_FROM')}>`,
@@ -120,7 +129,7 @@ ${taskUrl}`,
   }
 
   async sendInvitationEmail(email: string, token: string): Promise<void> {
-    const invitationUrl = `https://your-domain.com/invite/${token}`;
+    const invitationUrl = `${this.getFrontendUrl()}/invite/${token}`;
 
     await this.transporter.sendMail({
       from: `"Aurora" <${this.configService.get<string>('MAIL_FROM')}>`,

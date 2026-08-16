@@ -38,6 +38,9 @@ export const envConfig = () => ({
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
   },
+  frontend: {
+    url: process.env.FRONTEND_URL,
+  },
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '20971520', 10), // 20 MB
   },

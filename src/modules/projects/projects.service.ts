@@ -78,7 +78,13 @@ export class ProjectsService {
     if (!role) return false;
 
     const membership = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, roleId: role.id },
+      where: {
+        projectId,
+        userId,
+        roleId: role.id,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     return !!membership;
   }
@@ -174,7 +180,15 @@ export class ProjectsService {
         deletedAt: null,
         OR: [
           { ownerId: userId },
-          { members: { some: { userId } } },
+          {
+            members: {
+              some: {
+                userId,
+                status: ProjectMemberStatus.ACTIVE,
+                deletedAt: null,
+              },
+            },
+          },
         ],
       },
       include: {
@@ -182,7 +196,12 @@ export class ProjectsService {
           select: { id: true, fullName: true, email: true },
         },
         _count: {
-          select: { members: true, checklists: true },
+          select: {
+            members: {
+              where: { status: ProjectMemberStatus.ACTIVE, deletedAt: null },
+            },
+            checklists: { where: { deletedAt: null } },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -198,7 +217,12 @@ export class ProjectsService {
 
     // Authorization: must be a member, SUPER_ADMIN, or ADMIN
     const isMember = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     const isElevated = await this.hasElevatedRole(userId);
 
@@ -214,7 +238,12 @@ export class ProjectsService {
           select: { id: true, fullName: true, email: true, avatarUrl: true },
         },
         _count: {
-          select: { members: true, checklists: true },
+          select: {
+            members: {
+              where: { status: ProjectMemberStatus.ACTIVE, deletedAt: null },
+            },
+            checklists: { where: { deletedAt: null } },
+          },
         },
       },
     });
@@ -433,7 +462,7 @@ export class ProjectsService {
     const token = crypto.randomBytes(16).toString('hex');
 
     // Store in Redis
-    const invitationTtl = Number(this.configService.get<number>('INVITATION_TTL', 604800));
+    const invitationTtl = this.configService.get<number>('invitation.ttl', 604800);
     const inviteData = JSON.stringify({ projectId, email, roleId });
     await this.redisService.set(`${PROJECT_REDIS_KEYS.INVITE}${token}`, inviteData, invitationTtl);
 
@@ -547,7 +576,12 @@ export class ProjectsService {
 
     // Authorization: Must be an active member of the project
     const isMember = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     if (!isMember) {
       throw new ForbiddenException('You are not a member of this project');
@@ -555,7 +589,11 @@ export class ProjectsService {
 
     // Fetch all active members with user and role info
     const members = await this.prisma.projectMember.findMany({
-      where: { projectId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
       include: {
         user: {
           select: { id: true, fullName: true, email: true },
@@ -587,14 +625,24 @@ export class ProjectsService {
 
     // Authorization: Must be an active member of the project
     const isMember = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     if (!isMember) {
       throw new ForbiddenException('You are not a member of this project');
     }
 
     const member = await this.prisma.projectMember.findFirst({
-      where: { id: memberId, projectId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        id: memberId,
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
       include: {
         user: {
           select: { id: true, fullName: true, email: true, avatarUrl: true },
@@ -635,7 +683,12 @@ export class ProjectsService {
 
     // Member must belong to the project and be active
     const member = await this.prisma.projectMember.findFirst({
-      where: { id: memberId, projectId, status: ProjectMemberStatus.ACTIVE },
+      where: {
+        id: memberId,
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
       include: { project: { select: { ownerId: true } } },
     });
     if (!member) {
@@ -709,7 +762,12 @@ export class ProjectsService {
 
     // Member must belong to the project
     const member = await this.prisma.projectMember.findFirst({
-      where: { id: memberId, projectId },
+      where: {
+        id: memberId,
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     if (!member) {
       throw new NotFoundException('Member not found in this project');
@@ -765,7 +823,12 @@ export class ProjectsService {
 
     // Must be a current member
     const member = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId },
+      where: {
+        projectId,
+        userId,
+        status: ProjectMemberStatus.ACTIVE,
+        deletedAt: null,
+      },
     });
     if (!member) {
       throw new BadRequestException('You are not a member of this project');
@@ -775,7 +838,12 @@ export class ProjectsService {
     const managerRole = await this.prisma.projectRole.findUnique({ where: { name: 'PROJECT_MANAGER' } });
     if (managerRole && member.roleId === managerRole.id) {
       const managerCount = await this.prisma.projectMember.count({
-        where: { projectId, roleId: managerRole.id },
+        where: {
+          projectId,
+          roleId: managerRole.id,
+          status: ProjectMemberStatus.ACTIVE,
+          deletedAt: null,
+        },
       });
       if (managerCount <= 1) {
         throw new BadRequestException('Cannot leave the project as the last remaining manager');
