@@ -319,13 +319,34 @@ export class TasksService {
       throw new ForbiddenException('You are not a member of this project');
     }
 
-    return this.prisma.checklistItem.findMany({
+    const tasks = await this.prisma.checklistItem.findMany({
       where: {
         checklistId,
         deletedAt: null,
       },
       orderBy: { orderIndex: 'asc' },
+      include: {
+        status: {
+          select: { id: true, name: true, color: true },
+        },
+        tags: {
+          include: {
+            tag: { select: { id: true, name: true, color: true } },
+          },
+        },
+        _count: {
+          select: {
+            comments: { where: { deletedAt: null } },
+            attachments: { where: { deletedAt: null } },
+          },
+        },
+      },
     });
+
+    return tasks.map((task) => ({
+      ...task,
+      tags: task.tags.map((taskTag) => taskTag.tag),
+    }));
   }
 
   // ═══════════════════════════════════════════════
