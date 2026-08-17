@@ -3,11 +3,12 @@ import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ActivityLogModule } from '../activity-log/activity-log.module';
 import { ProjectsController } from './projects.controller';
+import { ProjectRolesController } from './project-roles.controller';
 import { ProjectsService } from './projects.service';
 
 @Module({
   imports: [AuthModule, NotificationsModule, ActivityLogModule],
-  controllers: [ProjectsController],
+  controllers: [ProjectsController, ProjectRolesController],
   providers: [ProjectsService],
   exports: [ProjectsService],
 })

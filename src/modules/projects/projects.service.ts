@@ -33,6 +33,16 @@ export class ProjectsService {
     private readonly azureBlobService: AzureBlobService,
   ) {}
 
+  async findProjectRoles() {
+    return this.prisma.projectRole.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
   // ───────────────────────────
   //  Helper: Ensure a ProjectRole exists
   // ───────────────────────────
