@@ -264,11 +264,14 @@ model Notification {
   title     String?  @db.VarChar(255)
   content   String?  @db.Text
   isRead    Boolean  @default(false) @map("is_read")
+  targetType String?  @map("target_type") @db.VarChar(30)
+  targetId   Int?     @map("target_id")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([userId])
+  @@index([targetType, targetId])
   @@map("notifications")
 }
 

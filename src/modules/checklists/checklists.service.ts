@@ -296,9 +296,9 @@ export class ChecklistsService {
 
     // Validate status flow: OPEN → IN_PROGRESS → DONE
     const validTransitions: Record<ChecklistStatus, ChecklistStatus[]> = {
-      [ChecklistStatus.OPEN]: [ChecklistStatus.IN_PROGRESS],
-      [ChecklistStatus.IN_PROGRESS]: [ChecklistStatus.DONE],
-      [ChecklistStatus.DONE]: [],
+      [ChecklistStatus.OPEN]: [ChecklistStatus.OPEN, ChecklistStatus.IN_PROGRESS, ChecklistStatus.DONE],
+      [ChecklistStatus.IN_PROGRESS]: [ChecklistStatus.OPEN, ChecklistStatus.IN_PROGRESS, ChecklistStatus.DONE],
+      [ChecklistStatus.DONE]: [ChecklistStatus.OPEN, ChecklistStatus.IN_PROGRESS, ChecklistStatus.DONE],
     };
 
     if (!validTransitions[currentStatus].includes(targetStatus)) {

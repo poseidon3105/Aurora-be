@@ -254,6 +254,8 @@ export class CommentsService {
           userId: user.id,
           title: 'You were mentioned in a comment',
           content: `${senderName} mentioned you in a comment on task #${taskId}`,
+          targetType: 'TASK',
+          targetId: taskId,
         },
       });
 

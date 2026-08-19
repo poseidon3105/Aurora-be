@@ -220,7 +220,10 @@ export class AttachmentsService {
     let attachment;
     let fileUrl: string;
     try {
-      fileUrl = await this.azureBlobService.getReadSasUrl(persistedBlobUrl);
+      fileUrl = await this.azureBlobService.getReadSasUrl(
+        persistedBlobUrl,
+        normalizedFileName,
+      );
       attachment = await this.prisma.taskAttachment.create({
         data: {
           taskId,
@@ -281,7 +284,10 @@ export class AttachmentsService {
     }
 
     return {
-      fileUrl: await this.azureBlobService.getReadSasUrl(attachment.fileUrl),
+      fileUrl: await this.azureBlobService.getReadSasUrl(
+        attachment.fileUrl,
+        attachment.fileName,
+      ),
       fileName: attachment.fileName,
     };
   }

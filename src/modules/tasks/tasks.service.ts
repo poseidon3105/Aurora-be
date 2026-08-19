@@ -282,13 +282,7 @@ export class TasksService {
       },
     });
 
-    // If tasks are created when checklist was DONE, revert to OPEN
-    if (checklist.status === ChecklistStatus.DONE) {
-      await this.prisma.checklist.update({
-        where: { id: checklistId },
-        data: { status: ChecklistStatus.OPEN },
-      });
-    }
+    await this.autoUpdateChecklistStatus(checklistId);
 
     // Activity Log: TASK_CREATED
     await this.activityLogService.create(
@@ -477,6 +471,7 @@ export class TasksService {
         task.assigneeId,
         'Task Unassigned',
         `You have been removed from task "${task.title}".`,
+        { type: 'TASK', id: taskId },
       ).catch(() => {});
 
       // Activity Log: TASK_UNASSIGNED
@@ -500,6 +495,7 @@ export class TasksService {
         dto.assigneeId,
         'Task Assigned',
         `${assignerName} assigned you to task "${task.title}".`,
+        { type: 'TASK', id: taskId },
       ).catch(() => {});
 
       // Activity Log: TASK_ASSIGNED
@@ -579,6 +575,7 @@ export class TasksService {
       dto.assigneeId!,
       'Task Assigned',
       `${assignerName} assigned you to task "${task.title}".`,
+        { type: 'TASK', id: taskId },
     ).catch(() => {});
 
     // Activity Log: TASK_ASSIGNED
@@ -661,8 +658,6 @@ export class TasksService {
         ...(doneStatus && { completedAt }),
       },
     });
-
-    // Auto-update checklist status
     await this.autoUpdateChecklistStatus(task.checklistId);
 
     // Notification: Task completed by someone else
@@ -671,6 +666,7 @@ export class TasksService {
         task.assigneeId,
         'Task Completed',
         `Task "${task.title}" has been completed.`,
+        { type: 'TASK', id: taskId },
       ).catch(() => {});
     }
 
@@ -777,8 +773,6 @@ export class TasksService {
       where: { id: taskId },
       data: { deletedAt: new Date() },
     });
-
-    // Auto-update checklist status after task deletion
     await this.autoUpdateChecklistStatus(task.checklistId);
 
     // Activity Log: TASK_DELETED

@@ -87,20 +87,47 @@ export class AzureBlobService implements OnModuleInit {
   }
 
   /** Generate a short-lived, read-only URL for a blob stored by this service. */
-  async getReadSasUrl(blobUrl: string): Promise<string> {
+  async getReadSasUrl(
+    blobUrl: string,
+    downloadFileName?: string | null,
+  ): Promise<string> {
     if (!this.isConfigured) {
       throw new Error('Azure Blob Storage is not configured');
     }
 
     const blobName = this.getBlobNameFromUrl(blobUrl);
     const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+    const contentDisposition = this.getDownloadContentDisposition(downloadFileName);
 
     return blockBlobClient.generateSasUrl({
       permissions: BlobSASPermissions.parse('r'),
       expiresOn: new Date(Date.now() + this.sasTtlSeconds * 1000),
+      ...(contentDisposition ? { contentDisposition } : {}),
     });
   }
 
+  private getDownloadContentDisposition(
+    downloadFileName?: string | null,
+  ): string | undefined {
+    if (!downloadFileName) return undefined;
+
+    const safeFileName = downloadFileName
+      .replace(/[\r\n\\"]/g, '')
+      .trim();
+    if (!safeFileName) return undefined;
+
+    const asciiFallback =
+      safeFileName
+        .normalize('NFKD')
+        .replace(/[^\x20-\x7E]/g, '')
+        .replace(/[\\"]/g, '') || 'download';
+    const encodedFileName = encodeURIComponent(safeFileName).replace(
+      /['()*]/g,
+      (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+
+    return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
+  }
   /**
    * Avatar fields may hold a legacy/external provider URL. Azure-managed URLs
    * are signed; external URLs are left unchanged.

@@ -307,6 +307,7 @@ export class ProjectsService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
+        ...(dto.status !== undefined && { status: dto.status }),
       },
     });
 
@@ -575,6 +576,7 @@ export class ProjectsService {
       authUser.id,
       'Added to Project',
       `You have been added to project "${project.name}".`,
+      { type: 'PROJECT', id: project.id },
     ).catch(() => {
       // Silently fail — notification should not block acceptance
     });
@@ -753,6 +755,7 @@ export class ProjectsService {
       member.userId,
       'Role Changed',
       `Your role has been changed to ${newRole.name} in project "${roleChangeProject?.name || 'Unknown'}".`,
+      { type: 'PROJECT', id: projectId },
     ).catch(() => {
       // Silently fail
     });

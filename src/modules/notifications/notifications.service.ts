@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+export type NotificationTarget = { type: 'TASK' | 'PROJECT'; id: number };
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,14 +29,16 @@ export class NotificationsService {
   //  Create a notification (used by other services)
   // ═══════════════════════════════════════════════
 
-  async create(userId: number, title: string, content: string) {
+  async create(userId: number, title: string, content: string, target?: NotificationTarget) {
     return this.prisma.notification.create({
-      data: { userId, title, content },
+      data: { userId, title, content, targetType: target?.type, targetId: target?.id },
       select: {
         id: true,
         title: true,
         content: true,
         isRead: true,
+        targetType: true,
+        targetId: true,
         createdAt: true,
       },
     });
@@ -73,6 +77,8 @@ export class NotificationsService {
           title: true,
           content: true,
           isRead: true,
+          targetType: true,
+          targetId: true,
           createdAt: true,
         },
       }),

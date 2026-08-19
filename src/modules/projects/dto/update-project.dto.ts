@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ProjectStatus } from '@prisma/client';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateProjectDto {
@@ -20,4 +21,8 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsDateString({}, { message: 'Invalid end date format' })
   endDate?: string;
-}
+
+  @ApiPropertyOptional({ enum: ProjectStatus, description: 'Project status' })
+  @IsOptional()
+  @IsEnum(ProjectStatus, { message: 'Invalid project status' })
+  status?: ProjectStatus;}

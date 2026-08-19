@@ -5,6 +5,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class ActivityLogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly activityWithUser = { user: { select: { id: true, fullName: true, avatarUrl: true } } } as const
+
   // ═══════════════════════════════════════════════
   //  Create Activity Log (internal — no public API)
   // ═══════════════════════════════════════════════
@@ -46,6 +48,7 @@ export class ActivityLogService {
     const [data, total] = await Promise.all([
       this.prisma.activityLog.findMany({
         where,
+        include: this.activityWithUser,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -162,6 +165,7 @@ export class ActivityLogService {
     const [data, total] = await Promise.all([
       this.prisma.activityLog.findMany({
         where,
+        include: this.activityWithUser,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -242,6 +246,7 @@ export class ActivityLogService {
     const [data, total] = await Promise.all([
       this.prisma.activityLog.findMany({
         where,
+        include: this.activityWithUser,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
